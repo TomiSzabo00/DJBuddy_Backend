@@ -5,13 +5,14 @@ import uuid
 class UserBase(BaseModel):
     username: str
     email: str
+    hashed_password: str = ""
     name: str
     type: str
     profilePicUrl: str
 
 
 class UserCreate(UserBase):
-    pass
+    password_string: str
 
 
 class User(UserBase):
@@ -20,6 +21,10 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+
+class LoginData(BaseModel):
+    email: str
+    password: str
 
 # class StoreBase(BaseModel):
 #     name: str

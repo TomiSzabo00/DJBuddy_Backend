@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from sql_app import models
 from database import get_db, engine
@@ -10,11 +10,25 @@ import uvicorn
 from typing import List,Optional
 from fastapi.encoders import jsonable_encoder
 
+SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
+ALGORITHM = "HS256"
+
 app = FastAPI(title="Sample FastAPI Application",
     description="Sample FastAPI Application with Swagger and Sqlalchemy",
     version="1.0.0",)
 
 models.Base.metadata.create_all(bind=engine)
+
+@app.get("/login", response_model=schemas.User,status_code=200)
+async def login_for_access_token(login_data: schemas.LoginData, db: Session = Depends(get_db)):
+    user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
 
 @app.exception_handler(Exception)
 def validation_exception_handler(request, err):

@@ -6,12 +6,13 @@ import uuid
 class User(Base):
     __tablename__ = "users"
     
-    uuid = Column(String(), index=True, primary_key=True, default=str(uuid.uuid4()))
+    uuid = Column(String, index=True, primary_key=True, default=str(uuid.uuid4()))
     username = Column(String(80), nullable=False)
+    hashed_password = Column(String, nullable=False)
     name = Column(String(80), nullable=False)
     email = Column(String(80), nullable=False, unique=True)
     type = Column(String(10), nullable=False)
-    profilePicUrl = Column(String(), nullable=False)
+    profilePicUrl = Column(String, nullable=False)
 
     def __repr__(self):
         return 'UserModel(name=%s, email=%s, type=%s)' % (self.name, self.email, self.type)

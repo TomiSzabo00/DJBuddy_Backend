@@ -2,14 +2,33 @@ from sqlalchemy.orm import Session
 from sql_app import models
 from sql_app import schemas
 import uuid
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserRepo:
  async def create(db: Session, user: schemas.UserCreate):
-        db_user = models.User(uuid=str(uuid.uuid4()),username=user.username,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
+        uuid_str = str(uuid.uuid4())
+        hashed_password = UserRepo.get_password_hash(user.password_string)
+        db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user
+ 
+ async def authenticate_user(db: Session, email: str, password: str) -> schemas.User:
+    user = UserRepo.fetch_by_email(db,email)
+    if not user:
+        return False
+    if not UserRepo.verify_password(password, user.hashed_password):
+        return False
+    return user
+
+ def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+ def get_password_hash(password):
+    return pwd_context.hash(password)
     
  def fetch_by_id(db: Session, user_id):
      return db.query(models.User).filter(models.User.uuid == user_id).first()
