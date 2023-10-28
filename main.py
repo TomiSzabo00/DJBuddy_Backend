@@ -48,7 +48,7 @@ def get_all_users(email: Optional[str] = None,db: Session = Depends(get_db)):
 
 
 @app.get('/users/{user_id}', tags=["User"],response_model=schemas.User)
-def get_user(user_id: int,db: Session = Depends(get_db)):
+def get_user(user_id: str,db: Session = Depends(get_db)):
     """
     Get the User with the given ID
     """
@@ -58,7 +58,7 @@ def get_user(user_id: int,db: Session = Depends(get_db)):
     return db_user
 
 @app.delete('/users/{user_id}', tags=["User"])
-async def delete_user(user_id: int,db: Session = Depends(get_db)):
+async def delete_user(user_id: str,db: Session = Depends(get_db)):
     """
     Delete the User with the given ID
     """
@@ -69,7 +69,7 @@ async def delete_user(user_id: int,db: Session = Depends(get_db)):
     return "User deleted successfully!"
 
 @app.put('/users/{user_id}', tags=["User"],response_model=schemas.User)
-async def update_user(user_id: int, user_request: schemas.User, db: Session = Depends(get_db)):
+async def update_user(user_id: str, user_request: schemas.User, db: Session = Depends(get_db)):
     """
     Update a User stored in the database
     """

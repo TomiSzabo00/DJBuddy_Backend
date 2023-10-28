@@ -12,7 +12,7 @@ class UserRepo:
         return db_user
     
  def fetch_by_id(db: Session, user_id):
-     return db.query(models.User).filter(models.User.id == user_id).first()
+     return db.query(models.User).filter(models.User.uuid == user_id).first()
  
  def fetch_by_email(db: Session,email):
      return db.query(models.User).filter(models.User.email == email).first()
