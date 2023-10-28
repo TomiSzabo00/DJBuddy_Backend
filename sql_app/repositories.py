@@ -1,41 +1,35 @@
 from sqlalchemy.orm import Session
-
 from sql_app import models
+from sql_app import schemas
 
-from .. import schemas
-
-
-class ItemRepo:
-    
- async def create(db: Session, item: schemas.ItemCreate):
-        db_item = models.Item(name=item.name,price=item.price,description=item.description,store_id=item.store_id)
-        db.add(db_item)
+class UserRepo:
+ async def create(db: Session, user: schemas.UserCreate):
+        db_user = models.User(username=user.username,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
+        db.add(db_user)
         db.commit()
-        db.refresh(db_item)
-        return db_item
+        db.refresh(db_user)
+        return db_user
     
- def fetch_by_id(db: Session,_id):
-     return db.query(models.Item).filter(models.Item.id == _id).first()
+ def fetch_by_id(db: Session, user_id):
+     return db.query(models.User).filter(models.User.id == user_id).first()
  
- def fetch_by_name(db: Session,name):
-     return db.query(models.Item).filter(models.Item.name == name).first()
+ def fetch_by_email(db: Session,email):
+     return db.query(models.User).filter(models.User.email == email).first()
  
  def fetch_all(db: Session, skip: int = 0, limit: int = 100):
-     return db.query(models.Item).offset(skip).limit(limit).all()
+     return db.query(models.User).offset(skip).limit(limit).all()
  
- async def delete(db: Session,item_id):
-     db_item= db.query(models.Item).filter_by(id=item_id).first()
-     db.delete(db_item)
+ async def delete(db: Session,user_id):
+     db_user = db.query(models.User).filter_by(id=user_id).first()
+     db.delete(db_user)
      db.commit()
-     
-     
- async def update(db: Session,item_data):
-    updated_item = db.merge(item_data)
+      
+ async def update(db: Session,user_data):
+    updated_user = db.merge(user_data)
     db.commit()
-    return updated_item
+    return updated_user
     
-    
-    
+
 class StoreRepo:
     
     async def create(db: Session, store: schemas.StoreCreate):

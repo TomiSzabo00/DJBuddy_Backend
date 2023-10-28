@@ -1,22 +1,23 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
-class ItemBase(BaseModel):
+class UserBase(BaseModel):
+    username: str
+    email: str
     name: str
-    price : float
-    description: Optional[str] = None
-    store_id: int
+    type: str
+    profilePicUrl: str
 
 
-class ItemCreate(ItemBase):
+class UserCreate(UserBase):
     pass
 
 
-class Item(ItemBase):
+class User(UserBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class StoreBase(BaseModel):
@@ -27,7 +28,7 @@ class StoreCreate(StoreBase):
 
 class Store(StoreBase):
     id: int
-    items: List[Item] = []
+    items: List[User] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True

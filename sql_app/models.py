@@ -1,18 +1,18 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-
 from database import Base
     
-class Item(Base):
-    __tablename__ = "items"
+class User(Base):
+    __tablename__ = "users"
     
     id = Column(Integer, primary_key=True,index=True)
-    name = Column(String(80), nullable=False, unique=True,index=True)
-    price = Column(Float(precision=2), nullable=False)
-    description = Column(String(200))
-    store_id = Column(Integer,ForeignKey('stores.id'),nullable=False)
+    username = Column(String(80), nullable=False)
+    name = Column(String(80), nullable=False)
+    email = Column(String(80), nullable=False, unique=True)
+    type = Column(String(10), nullable=False)
+    profilePicUrl = Column(String(200), nullable=False)
     def __repr__(self):
-        return 'ItemModel(name=%s, price=%s,store_id=%s)' % (self.name, self.price,self.store_id)
+        return 'ItemModel(name=%s, email=%s, type=%s)' % (self.name, self.email, self.type)
     
 class Store(Base):
     __tablename__ = "stores"
