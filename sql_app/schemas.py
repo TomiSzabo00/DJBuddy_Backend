@@ -6,7 +6,8 @@ class UserBase(BaseModel):
     username: str
     email: str
     hashed_password: str = ""
-    name: str
+    firstName: str
+    lastName: str
     type: str
     profilePicUrl: str
 

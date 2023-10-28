@@ -10,7 +10,7 @@ class UserRepo:
  async def create(db: Session, user: schemas.UserCreate):
         uuid_str = str(uuid.uuid4())
         hashed_password = UserRepo.get_password_hash(user.password_string)
-        db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
+        db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,firstName=user.firstName,lastName=user.lastName,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)

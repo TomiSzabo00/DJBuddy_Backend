@@ -19,7 +19,7 @@ app = FastAPI(title="Sample FastAPI Application",
 
 models.Base.metadata.create_all(bind=engine)
 
-@app.get("/login", response_model=schemas.User,status_code=200)
+@app.post("/login", response_model=schemas.User,status_code=200)
 async def login_for_access_token(login_data: schemas.LoginData, db: Session = Depends(get_db)):
     user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
     if not user:
