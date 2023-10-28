@@ -20,15 +20,15 @@ class User(UserBase):
         from_attributes = True
 
 
-class StoreBase(BaseModel):
-    name: str
+# class StoreBase(BaseModel):
+#     name: str
 
-class StoreCreate(StoreBase):
-    pass
+# class StoreCreate(StoreBase):
+#     pass
 
-class Store(StoreBase):
-    id: int
-    items: List[User] = []
+# class Store(StoreBase):
+#     id: int
+#     items: List[User] = []
 
-    class Config:
-        from_attributes = True
+#     class Config:
+#         from_attributes = True
