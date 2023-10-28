@@ -6,8 +6,7 @@ import uuid
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True,index=True)
-    uuid = Column(String(), index=True, unique=True, default=str(uuid.uuid4()))
+    uuid = Column(String(), index=True, primary_key=True, default=str(uuid.uuid4()))
     username = Column(String(80), nullable=False)
     name = Column(String(80), nullable=False)
     email = Column(String(80), nullable=False, unique=True)

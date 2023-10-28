@@ -15,9 +15,8 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    id: int
     uuid: str
-    
+
     class Config:
         from_attributes = True
 
