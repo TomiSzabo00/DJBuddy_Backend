@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 from sql_app import models
 from sql_app import schemas
+import uuid
 
 class UserRepo:
  async def create(db: Session, user: schemas.UserCreate):
-        db_user = models.User(username=user.username,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
+        db_user = models.User(uuid=str(uuid.uuid4()),username=user.username,name=user.name,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)

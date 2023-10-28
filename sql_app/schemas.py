@@ -1,5 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel
+import uuid
 
 class UserBase(BaseModel):
     username: str
@@ -15,7 +16,8 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
-
+    uuid: str
+    
     class Config:
         from_attributes = True
 
