@@ -21,7 +21,8 @@ class Event(Base):
     
     uuid = Column(String, index=True, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String(80), nullable=False)
-    dj_id = Column(String, nullable=False)
+    dj_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    dj = relationship("User",primaryjoin="Event.dj_id == User.uuid")
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     date = Column(String, nullable=False)

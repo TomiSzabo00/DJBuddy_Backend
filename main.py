@@ -65,6 +65,16 @@ def get_user(user_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found with the given ID")
     return db_user
 
+@app.get('/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
+def get_user_events(user_id: str,db: Session = Depends(get_db)):
+    """
+    Get the Events associated with the given User ID
+    """
+    db_user = UserRepo.fetch_by_id(db,user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+    return db_user.events
+
 @app.delete('/users/{user_id}', tags=["User"])
 async def delete_user(user_id: str,db: Session = Depends(get_db)):
     """
