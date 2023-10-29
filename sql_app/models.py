@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from database import Base
 import uuid
@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String(80), nullable=False, unique=True)
     type = Column(String(10), nullable=False)
     profilePicUrl = Column(String, nullable=False)
+    events = relationship("Event",secondary="association_table_user_events", back_populates="users")
 
 class Event(Base):
     __tablename__ = "events"
@@ -27,6 +28,7 @@ class Event(Base):
     state = Column(String, nullable=False)
     theme = Column(String, nullable=False)
     songs = relationship("Song",primaryjoin="Event.uuid == Song.event_id",cascade="all, delete-orphan")
+    users = relationship("User",secondary="association_table_user_events", back_populates="events")
 
 class Song(Base):
     __tablename__ = "songs"
@@ -37,3 +39,10 @@ class Song(Base):
     amount = Column(Float, nullable=False)
     albumArtUrl = Column(String, nullable=False)
     event_id = Column(String, ForeignKey("events.uuid"), nullable=False)
+
+association_table = Table(
+    "association_table_user_events",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.uuid"), primary_key=True),
+    Column("event_id", ForeignKey("events.uuid"), primary_key=True),
+)

@@ -1,27 +1,6 @@
 from typing import List
 from pydantic import BaseModel
 
-class UserBase(BaseModel):
-    username: str
-    email: str
-    hashed_password: str = ""
-    firstName: str
-    lastName: str
-    type: str
-    profilePicUrl: str
-
-
-class UserCreate(UserBase):
-    password_string: str
-
-
-class User(UserBase):
-    uuid: str
-
-    class Config:
-        from_attributes = True
-
-
 class LoginData(BaseModel):
     email: str
     password: str
@@ -56,6 +35,27 @@ class EventCreate(EventBase):
     pass
 
 class Event(EventBase):
+    uuid: str
+
+    class Config:
+        from_attributes = True
+
+class UserBase(BaseModel):
+    username: str
+    email: str
+    hashed_password: str = ""
+    firstName: str
+    lastName: str
+    type: str
+    profilePicUrl: str
+    events: List[Event] = []
+
+
+class UserCreate(UserBase):
+    password_string: str
+
+
+class User(UserBase):
     uuid: str
 
     class Config:
