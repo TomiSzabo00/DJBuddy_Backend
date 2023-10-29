@@ -47,6 +47,8 @@ class EventBase(BaseModel):
     dj: User
     latitude: float
     longitude: float
+    address_title: str
+    address_subtitle: str
     date: str
     state: str
     theme: str
