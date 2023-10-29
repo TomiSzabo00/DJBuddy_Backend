@@ -25,6 +25,8 @@ class Event(Base):
     dj = relationship("User",primaryjoin="Event.dj_id == User.uuid")
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
+    address_title = Column(String, nullable=False)
+    address_subtitle = Column(String, nullable=False)
     date = Column(String, nullable=False)
     state = Column(String, nullable=False)
     theme = Column(String, nullable=False)
