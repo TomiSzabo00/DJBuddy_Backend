@@ -29,8 +29,8 @@ def validation_exception_handler(request, err):
 
 # MARK: Login
 
-@app.post("/login", response_model=schemas.User,status_code=200)
-async def login_for_access_token(login_data: schemas.LoginData, db: Session = Depends(get_db)):
+@app.post("/users/login", response_model=schemas.User,status_code=200)
+async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
     user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
     if not user:
         raise HTTPException(
@@ -42,8 +42,8 @@ async def login_for_access_token(login_data: schemas.LoginData, db: Session = De
 
 # MARK: User
 
-@app.post('/users', tags=["User"],response_model=schemas.User,status_code=201)
-async def create_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
+@app.post('/users/register', tags=["User"],response_model=schemas.User,status_code=201)
+async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Create a User and store it in the database
     """
@@ -54,17 +54,6 @@ async def create_user(user_request: schemas.UserCreate, db: Session = Depends(ge
 
     return await UserRepo.create(db=db, user=user_request)
 
-
-@app.get('/users/{user_id}', tags=["User"],response_model=schemas.User)
-def get_user(user_id: str,db: Session = Depends(get_db)):
-    """
-    Get the User with the given ID
-    """
-    db_user = UserRepo.fetch_by_id(db,user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found with the given ID")
-    return db_user
-
 @app.get('/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
 def get_user_events(user_id: str,db: Session = Depends(get_db)):
     """
@@ -74,50 +63,6 @@ def get_user_events(user_id: str,db: Session = Depends(get_db)):
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found with the given ID")
     return db_user.events
-
-@app.delete('/users/{user_id}', tags=["User"])
-async def delete_user(user_id: str,db: Session = Depends(get_db)):
-    """
-    Delete the User with the given ID
-    """
-    db_user = UserRepo.fetch_by_id(db,user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found with the given ID")
-    await UserRepo.delete(db,user_id)
-    return "User deleted successfully!"
-
-@app.put('/users/{user_id}', tags=["User"],response_model=schemas.User)
-async def update_user(user_id: str, user_request: schemas.User, db: Session = Depends(get_db)):
-    """
-    Update a User stored in the database
-    """
-    db_user = UserRepo.fetch_by_id(db, user_id=user_id)
-    if db_user:
-        update_item_encoded = jsonable_encoder(user_request)
-        db_user.username = update_item_encoded['username']
-        db_user.email = update_item_encoded['email']
-        db_user.firstName = update_item_encoded['firstName']
-        db_user.lastName = update_item_encoded['lastName']
-        db_user.type = update_item_encoded['type']
-        db_user.profilePicUrl = update_item_encoded['profilePicUrl']
-        return await UserRepo.update(db=db,user_data=db_user)
-    else:
-        raise HTTPException(status_code=400, detail="User not found with the given ID")
-
-@app.post('/users/{user_id}/events/{event_id}', tags=["User"])
-async def add_event_to_user(user_id: str, event_id: str, db: Session = Depends(get_db)):
-    """
-    Add an Event to a User
-    """
-    db_user = UserRepo.fetch_by_id(db, user_id=user_id)
-    db_event = EventRepo.fetch_by_uuid(db, uuid=event_id)
-    if db_user and db_event:
-        db_user.events.append(db_event)
-        db.commit()
-        db.refresh(db_user)
-        return db_user
-    else:
-        raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
 # MARK: Event
 
