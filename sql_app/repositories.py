@@ -62,6 +62,9 @@ class EventRepo:
         query_result = db.query(models.Event).filter(models.Event.uuid == uuid).first()
         return schemas.Event.from_orm(query_result)
     
+    async def fetch_by_uuid_as_db_model(db: Session,uuid:str):
+        return db.query(models.Event).filter(models.Event.uuid == uuid).first()
+    
     async def fetch_all(db: Session, skip: int = 0, limit: int = 100):
         query_results = db.query(models.Event).offset(skip).limit(limit).all()
         list = []

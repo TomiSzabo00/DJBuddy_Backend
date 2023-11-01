@@ -161,12 +161,12 @@ async def update_event_theme(event_id: str, theme: str, db: Session = Depends(ge
     """
     Update the theme of the Event with the given ID
     """
-    db_event = await EventRepo.fetch_by_uuid(db,event_id)
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
     if db_event:
         db_event.theme = theme
         await EventRepo.update(db=db,event_data=db_event)
         await send_event_theme_update_to_websocket(event_id, theme=theme)
-        return db_event
+        return schemas.Event.from_orm(db_event)
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
