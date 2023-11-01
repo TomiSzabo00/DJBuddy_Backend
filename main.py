@@ -109,8 +109,7 @@ async def websocket_endpoint_for_event(websocket: WebSocket, event_id: str):
     # check if event_websockets has key for event_id and if there is a list of websockets
     if event_id not in event_websockets:
         event_websockets[event_id] = []
-    else:
-        event_websockets[event_id].append(websocket)
+    event_websockets[event_id].append(websocket)
     while True:
         # dont receive just keep connection alive
         await websocket.receive_text()
@@ -121,24 +120,29 @@ async def websocket_endpoint_for_event_theme(websocket: WebSocket, event_id: str
     # check if event_websockets has key for event_id and if there is a list of websockets
     if event_id not in event_theme_websockets:
         event_theme_websockets[event_id] = []
-    else:
-        event_theme_websockets[event_id].append(websocket)
+    event_theme_websockets[event_id].append(websocket)
     while True:
         # dont receive just keep connection alive
         await websocket.receive_text()
 
 async def send_event_update_to_websocket(event_id: str, event: schemas.Event):
     if event_id in event_websockets:
+        event_schema = schemas.Event.from_orm(event)
         for websocket in event_websockets[event_id]:
-            event_schema = schemas.Event.from_orm(event)
-            await websocket.send_json(event_schema.model_dump())
-            print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
+            try: 
+                await websocket.send_json(event_schema.model_dump())
+                print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
+            except:
+                print("!!!!!  Failed to send event update to websocket, it was probably closed")
 
 async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Event):
     if event_id in event_theme_websockets:
         for websocket in event_theme_websockets[event_id]:
-            await websocket.send_text(theme)
-            print("!!!!!  Sent event update to websocket, new theme: " + theme)
+            try:
+                await websocket.send_text(theme)
+                print("!!!!!  Sent event update to websocket, new theme: " + theme)
+            except:
+                print("!!!!!  Failed to send event update to websocket, it was probably closed")
 
 @app.delete('/events/{event_id}', tags=["Event"])
 async def delete_event(event_id: str,db: Session = Depends(get_db)):
