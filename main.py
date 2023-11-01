@@ -236,3 +236,15 @@ async def delete_song(song_id: int, db: Session = Depends(get_db)):
     event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song.event_id)
     await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
     return JSONResponse(status_code=200, content={"message": "Song deleted successfully"})
+
+@app.put('/songs/{song_id}/amount/increase_by/{amount}', tags=["Song"],response_model=float)
+async def increase_song_amount(song_id: int, amount: float, db: Session = Depends(get_db)):
+    """
+    Update the amount of a Song
+    """
+    song = await SongRepo.fetch_by_id_as_db_model(db=db, _id=song_id)
+    song.amount += amount
+    await SongRepo.update(db=db,song_data=song)
+    event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song.event_id)
+    await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
+    return song.amount

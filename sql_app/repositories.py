@@ -88,6 +88,9 @@ class SongRepo:
         query_result = db.query(models.Song).filter(models.Song.id == _id).first()
         return schemas.Song.from_orm(query_result)
     
+    async def fetch_by_id_as_db_model(db: Session,_id:int):
+        return db.query(models.Song).filter(models.Song.id == _id).first()
+    
     async def fetch_by_event_id(db: Session,event_id:str):
         query_results = db.query(models.Song).filter(models.Song.event_id == event_id).all()
         list = []
