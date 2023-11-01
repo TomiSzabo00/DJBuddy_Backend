@@ -31,7 +31,8 @@ def validation_exception_handler(request, err):
     base_error_message = f"Failed to execute: {request.method}: {request.url}"
     return JSONResponse(status_code=400, content={"message": f"{base_error_message}. Detail: {err}"})
 
-# MARK: Login
+
+# MARK: User
 
 @app.post("/users/login", response_model=schemas.User,status_code=200)
 async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
@@ -43,8 +44,6 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
-
-# MARK: User
 
 @app.post('/users/register', tags=["User"],response_model=schemas.User,status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -144,17 +143,6 @@ async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Eve
             except:
                 print("!!!!!  Failed to send event update to websocket, it was probably closed")
 
-@app.delete('/events/{event_id}', tags=["Event"])
-async def delete_event(event_id: str,db: Session = Depends(get_db)):
-    """
-    Delete the Event with the given ID
-    """
-    db_event = await EventRepo.fetch_by_uuid(db,event_id)
-    if db_event is None:
-        raise HTTPException(status_code=404, detail="Event not found with the given ID")
-    await EventRepo.delete(db,event_id)
-    return "Event deleted successfully!"
-
 @app.post('/events/{event_id}/theme/{theme}', tags=["Event"],response_model=schemas.Event)
 async def update_event_theme(event_id: str, theme: str, db: Session = Depends(get_db)):
     """
@@ -180,30 +168,22 @@ async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.put('/events/{event_id}', tags=["Event"],response_model=schemas.Event)
-async def update_event(event_id: str, event_request: schemas.Event, db: Session = Depends(get_db)):
-    """
-    Update an Event stored in the database
-    """
-    db_event = await EventRepo.fetch_by_uuid(db, event_id=event_id)
-    if db_event:
-        update_item_encoded = jsonable_encoder(event_request)
-        db_event.name = update_item_encoded['name']
-        db_event.latitude = update_item_encoded['latitude']
-        db_event.longitude = update_item_encoded['longitude']
-        db_event.date = update_item_encoded['date']
-        db_event.state = update_item_encoded['state']
-        db_event.theme = update_item_encoded['theme']
-        return await EventRepo.update(db=db,event_data=db_event)
-    else:
-        raise HTTPException(status_code=400, detail="Event not found with the given ID")
-
-@app.get('/events', tags=["Event"],response_model=List[schemas.Event])
-async def get_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
+@app.get('/events/all', tags=["Event"],response_model=List[schemas.Event])
+async def get_all_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
     """
     Get all Events
     """
     return await EventRepo.fetch_all(db=db, skip=skip, limit=limit)
+
+@app.get('/events/{event_id}/songs', tags=["Event"],response_model=List[schemas.Song])
+async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
+    """
+    Get the Songs associated with the given Event ID
+    """
+    db_event = await EventRepo.fetch_by_uuid(db,event_id)
+    if db_event is None:
+        raise HTTPException(status_code=404, detail="Event not found with the given ID")
+    return db_event.songs
 
 # MARK: Song
 

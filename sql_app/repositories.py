@@ -59,18 +59,15 @@ class EventRepo:
         return db_event
     
     async def fetch_by_uuid(db: Session,uuid:str):
-        return db.query(models.Event).filter(models.Event.uuid == uuid).first()
+        query_result = db.query(models.Event).filter(models.Event.uuid == uuid).first()
+        return schemas.Event.from_orm(query_result)
     
     async def fetch_all(db: Session, skip: int = 0, limit: int = 100):
-        return db.query(models.Event).offset(skip).limit(limit).all()
-    
-    async def fetch_by_dj_id(db: Session,dj_id:str):
-        return db.query(models.Event).filter(models.Event.dj_id == dj_id).all()
-    
-    async def delete(db: Session,_id:int):
-        db_event= db.query(models.Event).filter_by(id=_id).first()
-        db.delete(db_event)
-        db.commit()
+        query_results = db.query(models.Event).offset(skip).limit(limit).all()
+        list = []
+        for result in query_results:
+            list.append(schemas.Event.from_orm(result))
+        return list
         
     async def update(db: Session,event_data):
         db.merge(event_data)
@@ -85,13 +82,18 @@ class SongRepo:
         return db_song
     
     async def fetch_by_id(db: Session,_id:int):
-        return db.query(models.Song).filter(models.Song.id == _id).first()
+        query_result = db.query(models.Song).filter(models.Song.id == _id).first()
+        return schemas.Song.from_orm(query_result)
     
     async def fetch_by_event_id(db: Session,event_id:str):
-        return db.query(models.Song).filter(models.Song.event_id == event_id).all()
+        query_results = db.query(models.Song).filter(models.Song.event_id == event_id).all()
+        list = []
+        for result in query_results:
+            list.append(schemas.Song.from_orm(result))
+        return list
     
     async def delete(db: Session,_id:int):
-        db_song= db.query(models.Song).filter_by(id=_id).first()
+        db_song = db.query(models.Song).filter_by(id=_id).first()
         db.delete(db_song)
         db.commit()
         
