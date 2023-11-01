@@ -58,7 +58,7 @@ class EventRepo:
         db.refresh(db_event)
         return db_event
     
-    def fetch_by_uuid(db: Session,uuid:str):
+    async def fetch_by_uuid(db: Session,uuid:str):
         return db.query(models.Event).filter(models.Event.uuid == uuid).first()
     
     def fetch_all(db: Session, skip: int = 0, limit: int = 100):

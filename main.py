@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
 from fastapi.encoders import jsonable_encoder
-from starlette.middleware.cors import CORSMiddleware
 
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
 ALGORITHM = "HS256"
@@ -18,28 +17,11 @@ app = FastAPI(title="Sample FastAPI Application",
     description="Sample FastAPI Application with Swagger and Sqlalchemy",
     version="1.0.0",)
 
-origins = [
-    # "http://localhost:9000",
-    # "http://localhost:3000",
-    # "http://localhost:8000",
-    # "http://localhost",
-    # "http://localhost:8080",
-    # "http://localhost:8081",
-    "*"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET","POST","PUT","DELETE","OPTIONS"],
-    allow_headers=["*"],
-)
-
 models.Base.metadata.create_all(bind=engine)
 
 # MARK: Websockets
 event_websockets = {}
+event_theme_websockets = {}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", port=9000, reload=True)
@@ -109,12 +91,30 @@ def get_event(event_id: str,db: Session = Depends(get_db)):
 async def websocket_endpoint_for_event(websocket: WebSocket, event_id: str):
     await websocket.accept()
     event_websockets[event_id] = websocket
+    while True:
+        # dont receive just keep connection alive
+        await websocket.receive_text()
 
-def send_event_update(event_id: str, event: schemas.Event):
+@app.websocket("/ws/events/{event_id}/themes")
+async def websocket_endpoint_for_event_theme(websocket: WebSocket, event_id: str):
+    await websocket.accept()
+    event_theme_websockets[event_id] = websocket
+    while True:
+        # dont receive just keep connection alive
+        await websocket.receive_text()
+
+async def send_event_update_to_websocket(event_id: str, event: schemas.Event):
     if event_id in event_websockets:
         websocket = event_websockets[event_id]
-        websocket.send_json(event)
+        event_schema = schemas.Event.from_orm(event)
+        await websocket.send_json(event_schema.model_dump())
         print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
+
+async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Event):
+    if event_id in event_theme_websockets:
+        websocket = event_theme_websockets[event_id]
+        await websocket.send_text(theme)
+        print("!!!!!  Sent event update to websocket, new theme: " + theme)
 
 @app.delete('/events/{event_id}', tags=["Event"])
 async def delete_event(event_id: str,db: Session = Depends(get_db)):
@@ -132,11 +132,11 @@ async def update_event_theme(event_id: str, theme: str, db: Session = Depends(ge
     """
     Update the theme of the Event with the given ID
     """
-    db_event = EventRepo.fetch_by_uuid(db,event_id)
+    db_event = await EventRepo.fetch_by_uuid(db,event_id)
     if db_event:
         db_event.theme = theme
         await EventRepo.update(db=db,event_data=db_event)
-        send_event_update(event_id, db_event)
+        await send_event_theme_update_to_websocket(event_id, theme=theme)
         return db_event
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
