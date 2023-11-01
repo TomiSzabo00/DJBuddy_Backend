@@ -130,7 +130,7 @@ async def send_event_update_to_websocket(event_id: str, event: schemas.Event):
         for websocket in event_websockets[event_id]:
             try: 
                 await websocket.send_json(event_schema.model_dump())
-                print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
+                print("!!!!!  Sent event update to websocket")
             except:
                 print("!!!!!  Failed to send event update to websocket, it was probably closed")
 
@@ -185,6 +185,8 @@ async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     return db_event.songs
 
+
+
 # MARK: Song
 
 @app.post('/songs', tags=["Song"],response_model=schemas.Song,status_code=201)
@@ -192,4 +194,18 @@ async def create_song(song_request: schemas.SongCreate, db: Session = Depends(ge
     """
     Create a Song and store it in the database
     """
-    return await SongRepo.create(db=db, song=song_request)
+    song = await SongRepo.create(db=db, song=song_request)
+    event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song_request.event_id)
+    await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
+    return song
+
+@app.post('/songs/{song_id}/remove', tags=["Song"])
+async def delete_song(song_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a Song from the database
+    """
+    song = await SongRepo.fetch_by_id(db=db, _id=song_id)
+    await SongRepo.delete(db=db, _id=song_id)
+    event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song.event_id)
+    await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
+    return JSONResponse(status_code=200, content={"message": "Song deleted successfully"})

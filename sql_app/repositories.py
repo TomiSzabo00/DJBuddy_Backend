@@ -79,7 +79,7 @@ class SongRepo:
         db.add(db_song)
         db.commit()
         db.refresh(db_song)
-        return db_song
+        return schemas.Song.from_orm(db_song)
     
     async def fetch_by_id(db: Session,_id:int):
         query_result = db.query(models.Song).filter(models.Song.id == _id).first()
