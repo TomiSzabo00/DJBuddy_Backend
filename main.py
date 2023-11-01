@@ -169,6 +169,17 @@ async def update_event_theme(event_id: str, theme: str, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
+@app.get('/events/{event_id}/theme', tags=["Event"],response_model=str)
+async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
+    """
+    Get the theme of the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid(db,event_id)
+    if db_event:
+        return db_event.theme
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
 @app.put('/events/{event_id}', tags=["Event"],response_model=schemas.Event)
 async def update_event(event_id: str, event_request: schemas.Event, db: Session = Depends(get_db)):
     """
