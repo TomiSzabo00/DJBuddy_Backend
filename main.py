@@ -23,6 +23,11 @@ models.Base.metadata.create_all(bind=engine)
 event_websockets = {}
 event_theme_websockets = {}
 
+
+
+
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", port=9000, reload=True)
 
@@ -30,6 +35,9 @@ if __name__ == "__main__":
 def validation_exception_handler(request, err):
     base_error_message = f"Failed to execute: {request.method}: {request.url}"
     return JSONResponse(status_code=400, content={"message": f"{base_error_message}. Detail: {err}"})
+
+
+
 
 
 # MARK: User
@@ -81,6 +89,11 @@ async def add_event_to_user(user_id: str, event_id: str, db: Session = Depends(g
         return db_user
     else:
         raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
+
+
+
+
+
 
 
 # MARK: Event
@@ -184,6 +197,10 @@ async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
     if db_event is None:
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     return db_event.songs
+
+
+
+
 
 
 
