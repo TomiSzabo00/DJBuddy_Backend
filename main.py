@@ -211,6 +211,16 @@ async def create_song(song_request: schemas.SongCreate, db: Session = Depends(ge
     """
     Create a Song and store it in the database
     """
+    # check if the event exists
+    db_event = await EventRepo.fetch_by_uuid(db,song_request.event_id)
+    if db_event is None:
+        raise HTTPException(status_code=404, detail="Event not found with the given ID")
+    # check if the song already exists
+    all_songs = await SongRepo.fetch_by_event_id(db,song_request.event_id)
+    for song in all_songs:
+        if song.title == song_request.title and song.artist == song_request.artist:
+            raise HTTPException(status_code=400, detail="Song already exists in the event")
+    
     song = await SongRepo.create(db=db, song=song_request)
     event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song_request.event_id)
     await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
