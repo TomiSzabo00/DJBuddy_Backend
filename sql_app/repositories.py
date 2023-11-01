@@ -17,26 +17,26 @@ class UserRepo:
         return db_user
 
     async def authenticate_user(db: Session, email: str, password: str) -> schemas.User:
-        user = UserRepo.fetch_by_email(db,email)
+        user = await UserRepo.fetch_by_email(db,email)
         if not user:
             return False
         if not UserRepo.verify_password(password, user.hashed_password):
             return False
         return user
 
-    def verify_password(plain_password, hashed_password):
+    async def verify_password(plain_password, hashed_password):
         return pwd_context.verify(plain_password, hashed_password)
 
-    def get_password_hash(password):
+    async def get_password_hash(password):
         return pwd_context.hash(password)
 
-    def fetch_by_id(db: Session, user_id):
+    async def fetch_by_id(db: Session, user_id):
         return db.query(models.User).filter(models.User.uuid == user_id).first()
 
-    def fetch_by_email(db: Session,email):
+    async def fetch_by_email(db: Session,email):
         return db.query(models.User).filter(models.User.email == email).first()
 
-    def fetch_all(db: Session, skip: int = 0, limit: int = 100):
+    async def fetch_all(db: Session, skip: int = 0, limit: int = 100):
         return db.query(models.User).offset(skip).limit(limit).all()
 
     async def delete(db: Session,user_id):
@@ -61,10 +61,10 @@ class EventRepo:
     async def fetch_by_uuid(db: Session,uuid:str):
         return db.query(models.Event).filter(models.Event.uuid == uuid).first()
     
-    def fetch_all(db: Session, skip: int = 0, limit: int = 100):
+    async def fetch_all(db: Session, skip: int = 0, limit: int = 100):
         return db.query(models.Event).offset(skip).limit(limit).all()
     
-    def fetch_by_dj_id(db: Session,dj_id:str):
+    async def fetch_by_dj_id(db: Session,dj_id:str):
         return db.query(models.Event).filter(models.Event.dj_id == dj_id).all()
     
     async def delete(db: Session,_id:int):
@@ -84,10 +84,10 @@ class SongRepo:
         db.refresh(db_song)
         return db_song
     
-    def fetch_by_id(db: Session,_id:int):
+    async def fetch_by_id(db: Session,_id:int):
         return db.query(models.Song).filter(models.Song.id == _id).first()
     
-    def fetch_by_event_id(db: Session,event_id:str):
+    async def fetch_by_event_id(db: Session,event_id:str):
         return db.query(models.Song).filter(models.Song.event_id == event_id).all()
     
     async def delete(db: Session,_id:int):

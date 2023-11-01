@@ -52,21 +52,37 @@ async def register_user(user_request: schemas.UserCreate, db: Session = Depends(
     Create a User and store it in the database
     """
     
-    db_user = UserRepo.fetch_by_email(db, email=user_request.email)
+    db_user = await UserRepo.fetch_by_email(db, email=user_request.email)
     if db_user:
         raise HTTPException(status_code=400, detail="User already exists!")
 
     return await UserRepo.create(db=db, user=user_request)
 
 @app.get('/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
-def get_user_events(user_id: str,db: Session = Depends(get_db)):
+async def get_user_events(user_id: str,db: Session = Depends(get_db)):
     """
     Get the Events associated with the given User ID
     """
-    db_user = UserRepo.fetch_by_id(db,user_id)
+    db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found with the given ID")
     return db_user.events
+
+@app.post('/users/{user_id}/events/{event_id}', tags=["User"])
+async def add_event_to_user(user_id: str, event_id: str, db: Session = Depends(get_db)):
+    """
+    Add an Event to a User
+    """
+    db_user = await UserRepo.fetch_by_id(db, user_id=user_id)
+    db_event = await EventRepo.fetch_by_uuid(db, uuid=event_id)
+    if db_user and db_event:
+        db_user.events.append(db_event)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    else:
+        raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
+
 
 # MARK: Event
 
@@ -78,11 +94,11 @@ async def create_event(event_request: schemas.EventCreate, db: Session = Depends
     return await EventRepo.create(db=db, event=event_request)
 
 @app.get('/events/{event_id}', tags=["Event"],response_model=schemas.Event)
-def get_event(event_id: str,db: Session = Depends(get_db)):
+async def get_event(event_id: str,db: Session = Depends(get_db)):
     """
     Get the Event with the given ID
     """
-    db_event = EventRepo.fetch_by_uuid(db,event_id)
+    db_event = await EventRepo.fetch_by_uuid(db,event_id)
     if db_event is None:
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     return db_event
@@ -90,7 +106,11 @@ def get_event(event_id: str,db: Session = Depends(get_db)):
 @app.websocket("/ws/events/{event_id}")
 async def websocket_endpoint_for_event(websocket: WebSocket, event_id: str):
     await websocket.accept()
-    event_websockets[event_id] = websocket
+    # check if event_websockets has key for event_id and if there is a list of websockets
+    if event_id not in event_websockets:
+        event_websockets[event_id] = []
+    else:
+        event_websockets[event_id].append(websocket)
     while True:
         # dont receive just keep connection alive
         await websocket.receive_text()
@@ -98,30 +118,34 @@ async def websocket_endpoint_for_event(websocket: WebSocket, event_id: str):
 @app.websocket("/ws/events/{event_id}/themes")
 async def websocket_endpoint_for_event_theme(websocket: WebSocket, event_id: str):
     await websocket.accept()
-    event_theme_websockets[event_id] = websocket
+    # check if event_websockets has key for event_id and if there is a list of websockets
+    if event_id not in event_theme_websockets:
+        event_theme_websockets[event_id] = []
+    else:
+        event_theme_websockets[event_id].append(websocket)
     while True:
         # dont receive just keep connection alive
         await websocket.receive_text()
 
 async def send_event_update_to_websocket(event_id: str, event: schemas.Event):
     if event_id in event_websockets:
-        websocket = event_websockets[event_id]
-        event_schema = schemas.Event.from_orm(event)
-        await websocket.send_json(event_schema.model_dump())
-        print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
+        for websocket in event_websockets[event_id]:
+            event_schema = schemas.Event.from_orm(event)
+            await websocket.send_json(event_schema.model_dump())
+            print("!!!!!  Sent event update to websocket, new theme: " + event.theme)
 
 async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Event):
     if event_id in event_theme_websockets:
-        websocket = event_theme_websockets[event_id]
-        await websocket.send_text(theme)
-        print("!!!!!  Sent event update to websocket, new theme: " + theme)
+        for websocket in event_theme_websockets[event_id]:
+            await websocket.send_text(theme)
+            print("!!!!!  Sent event update to websocket, new theme: " + theme)
 
 @app.delete('/events/{event_id}', tags=["Event"])
 async def delete_event(event_id: str,db: Session = Depends(get_db)):
     """
     Delete the Event with the given ID
     """
-    db_event = EventRepo.fetch_by_uuid(db,event_id)
+    db_event = await EventRepo.fetch_by_uuid(db,event_id)
     if db_event is None:
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     await EventRepo.delete(db,event_id)
@@ -146,7 +170,7 @@ async def update_event(event_id: str, event_request: schemas.Event, db: Session 
     """
     Update an Event stored in the database
     """
-    db_event = EventRepo.fetch_by_uuid(db, event_id=event_id)
+    db_event = await EventRepo.fetch_by_uuid(db, event_id=event_id)
     if db_event:
         update_item_encoded = jsonable_encoder(event_request)
         db_event.name = update_item_encoded['name']
@@ -160,11 +184,11 @@ async def update_event(event_id: str, event_request: schemas.Event, db: Session 
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
 @app.get('/events', tags=["Event"],response_model=List[schemas.Event])
-def get_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
+async def get_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
     """
     Get all Events
     """
-    return EventRepo.fetch_all(db=db, skip=skip, limit=limit)
+    return await EventRepo.fetch_all(db=db, skip=skip, limit=limit)
 
 # MARK: Song
 
