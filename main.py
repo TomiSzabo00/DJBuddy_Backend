@@ -101,7 +101,7 @@ async def add_event_to_user(user_id: str, event_id: str, db: Session = Depends(g
 
 # MARK: Event
 
-@app.post('/events', tags=["Event"],response_model=schemas.Event,status_code=201)
+@app.post('/events/create', tags=["Event"],response_model=schemas.Event,status_code=201)
 async def create_event(event_request: schemas.EventCreate, db: Session = Depends(get_db)):
     """
     Create an Event and store it in the database

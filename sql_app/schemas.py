@@ -44,7 +44,6 @@ class Song(SongBase):
 class EventBase(BaseModel):
     name: str
     dj_id: str
-    dj: User
     latitude: float
     longitude: float
     address_title: str
@@ -59,6 +58,7 @@ class EventCreate(EventBase):
 
 class Event(EventBase):
     uuid: str
+    dj: User
 
     class Config:
         from_attributes = True
