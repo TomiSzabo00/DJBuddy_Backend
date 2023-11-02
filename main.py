@@ -201,6 +201,19 @@ async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     return db_event.songs
 
+@app.post('/events/{event_id}/state/{state}', tags=["Event"],response_model=schemas.Event)
+async def update_event_state(event_id: str, state: str, db: Session = Depends(get_db)):
+    """
+    Update the state of the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        db_event.state = state
+        await EventRepo.update(db=db,event_data=db_event)
+        await send_event_update_to_websocket(event_id, event=db_event)
+        return schemas.Event.from_orm(db_event)
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
 
 
