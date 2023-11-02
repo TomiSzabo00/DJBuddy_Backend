@@ -8,7 +8,7 @@ from sql_app.repositories import UserRepo, EventRepo, SongRepo
 from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
-from fastapi.encoders import jsonable_encoder
+import math
 
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
 ALGORITHM = "HS256"
@@ -42,7 +42,7 @@ def validation_exception_handler(request, err):
 
 # MARK: User
 
-@app.post("/users/login", response_model=schemas.User,status_code=200)
+@app.post("/users/login", tags=["User"], response_model=schemas.User,status_code=200)
 async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
     user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
     if not user:
@@ -77,21 +77,6 @@ async def get_user_events(user_id: str,db: Session = Depends(get_db)):
         events = await EventRepo.fetch_by_dj_id(db,user_id)
         return events
     return db_user.events
-
-@app.post('/users/{user_id}/events/{event_id}', tags=["User"])
-async def add_event_to_user(user_id: str, event_id: str, db: Session = Depends(get_db)):
-    """
-    Add an Event to a User
-    """
-    db_user = await UserRepo.fetch_by_id(db, user_id=user_id)
-    db_event = await EventRepo.fetch_by_uuid(db, uuid=event_id)
-    if db_user and db_event:
-        db_user.events.append(db_event)
-        db.commit()
-        db.refresh(db_user)
-        return db_user
-    else:
-        raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
 
 
@@ -184,12 +169,24 @@ async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.get('/events/all', tags=["Event"],response_model=List[schemas.Event])
+@app.get('/events/all/', tags=["Event"],response_model=List[schemas.Event])
 async def get_all_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
     """
     Get all Events
     """
     return await EventRepo.fetch_all(db=db, skip=skip, limit=limit)
+
+@app.get('/events/near_me/', tags=["Event"],response_model=List[schemas.Event])
+async def get_near_me_events(latitude: float, longitude: float, distance: float = 20, db: Session = Depends(get_db)):
+    """
+    Get all Events near the given latitude and longitude
+    """
+    all_events = await EventRepo.fetch_all(db=db)
+    events_near_me = []
+    for event in all_events:
+        if haversine_distance(latitude, longitude, event.latitude, event.longitude) <= distance:
+            events_near_me.append(event)
+    return events_near_me
 
 @app.get('/events/{event_id}/songs', tags=["Event"],response_model=List[schemas.Song])
 async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
@@ -215,6 +212,37 @@ async def update_event_state(event_id: str, state: str, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
+@app.put('/events/{event_id}/join/{user_id}', tags=["Event"],response_model=schemas.Event)
+async def join_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
+    """
+    Add a User to an Event
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user.type == "dj":
+        raise HTTPException(status_code=400, detail="DJ cannot join an event")
+    if db_event and db_user:
+        db_event.users.append(db_user)
+        await EventRepo.update(db=db,event_data=db_event)
+        return schemas.Event.from_orm(db_event)
+    else:
+        raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
+
+@app.put('/events/{event_id}/leave/{user_id}', tags=["Event"],response_model=schemas.Event)
+async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
+    """
+    Remove a User from an Event
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user.type == "dj":
+        raise HTTPException(status_code=400, detail="DJ cannot leave an event")
+    if db_event and db_user:
+        db_event.users.remove(db_user)
+        await EventRepo.update(db=db,event_data=db_event)
+        return schemas.Event.from_orm(db_event)
+    else:
+        raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
 
 
@@ -264,3 +292,30 @@ async def increase_song_amount(song_id: int, amount: float, db: Session = Depend
     event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song.event_id)
     await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
     return song.amount
+
+
+
+
+# MARK: Helpers
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    # Radius of the Earth in kilometers
+    earth_radius = 6371
+
+    # Convert latitude and longitude from degrees to radians
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    # Calculate the distance
+    distance = earth_radius * c
+
+    return distance
