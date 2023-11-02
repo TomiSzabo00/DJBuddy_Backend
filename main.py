@@ -73,6 +73,9 @@ async def get_user_events(user_id: str,db: Session = Depends(get_db)):
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found with the given ID")
+    if db_user.type == "dj":
+        events = await EventRepo.fetch_by_dj_id(db,user_id)
+        return events
     return db_user.events
 
 @app.post('/users/{user_id}/events/{event_id}', tags=["User"])
