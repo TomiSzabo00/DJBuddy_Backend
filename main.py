@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
 import math
+import stripe
+import json
 
+stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
 ALGORITHM = "HS256"
 
@@ -319,3 +322,27 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     distance = earth_radius * c
 
     return distance
+
+
+
+
+
+# MARK: Payment
+@app.get('/payment/create/', tags=["Payment"],response_model=schemas.PaymentIntent)
+async def create_payment(amount: float, db: Session = Depends(get_db)):
+    """
+    Create a Payment and return the Payment Intent Client Secret
+    """
+    customer = stripe.Customer.create()
+    ephemeralKey = stripe.EphemeralKey.create(
+    customer=customer['id'],
+    stripe_version='2023-10-16',
+    )
+    intent = stripe.PaymentIntent.create(
+        amount=int(amount*100),
+        currency='usd',
+        payment_method_types=['card'],
+        capture_method='manual',
+    )
+
+    return schemas.PaymentIntent(paymentIntent=intent.client_secret, ephemeralKey=ephemeralKey.secret, customer=customer['id'],publishableKey="pk_test_51O84UAKBcww6so5Sqnlsm12nzm2PK46wTJiMzTDOPOuLifRqk4HNqKrfM4yNsyL7sS4G6n4nSXbjEFaeIkelF1Bj00gOxZnYET")

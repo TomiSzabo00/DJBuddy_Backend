@@ -62,3 +62,11 @@ class Event(EventBase):
 
     class Config:
         from_attributes = True
+
+
+class PaymentIntent(BaseModel):
+    paymentIntent: str
+    ephemeralKey: str
+    customer: str
+    publishableKey: str
+
