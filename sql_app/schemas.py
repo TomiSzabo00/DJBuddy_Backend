@@ -17,6 +17,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     uuid: str
+    balance: float
 
     class Config:
         from_attributes = True

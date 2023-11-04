@@ -81,7 +81,37 @@ async def get_user_events(user_id: str,db: Session = Depends(get_db)):
         return events
     return db_user.events
 
+@app.put('/users/{user_id}/balance/{amount}', tags=["User"],response_model=float)
+async def add_to_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
+    """
+    Update the balance of the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    db_user.balance += amount
+    await UserRepo.update(db=db,user_data=db_user)
+    return db_user.balance
 
+@app.put('/users/{user_id}/balance/{amount}/remove', tags=["User"],response_model=float)
+async def remove_from_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
+    """
+    Update the balance of the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user.balance < amount:
+        raise HTTPException(status_code=400, detail="You do not have enough money to make this transaction")
+    db_user.balance -= amount
+    await UserRepo.update(db=db,user_data=db_user)
+    return db_user.balance
+
+@app.get('/users/{user_id}', tags=["User"],response_model=schemas.User)
+async def get_user(user_id: str,db: Session = Depends(get_db)):
+    """
+    Get the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+    return db_user
 
 
 
@@ -341,8 +371,9 @@ async def create_payment(amount: float, db: Session = Depends(get_db)):
     intent = stripe.PaymentIntent.create(
         amount=int(amount*100),
         currency='usd',
-        payment_method_types=['card'],
-        capture_method='manual',
+        automatic_payment_methods={
+            'enabled': True,
+        },
     )
 
     return schemas.PaymentIntent(paymentIntent=intent.client_secret, ephemeralKey=ephemeralKey.secret, customer=customer['id'],publishableKey="pk_test_51O84UAKBcww6so5Sqnlsm12nzm2PK46wTJiMzTDOPOuLifRqk4HNqKrfM4yNsyL7sS4G6n4nSXbjEFaeIkelF1Bj00gOxZnYET")

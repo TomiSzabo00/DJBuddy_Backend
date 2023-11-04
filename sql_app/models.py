@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String(80), nullable=False, unique=True)
     type = Column(String(10), nullable=False)
     profilePicUrl = Column(String, nullable=False)
+    balance = Column(Float, nullable=False, default=0)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
 
 class Event(Base):
