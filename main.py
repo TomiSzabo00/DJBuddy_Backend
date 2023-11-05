@@ -1,16 +1,16 @@
-from fastapi import Depends, FastAPI, HTTPException, status, WebSocket
+from fastapi import Depends, FastAPI, HTTPException, status, WebSocket, Path
 from fastapi.responses import JSONResponse
 from sql_app import models
 from database import get_db, engine
 import sql_app.models as models
 import sql_app.schemas as schemas
-from sql_app.repositories import UserRepo, EventRepo, SongRepo
+from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo
 from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
 import math
 import stripe
-import json
+from typing import Annotated
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
@@ -283,10 +283,10 @@ async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)
 
 # MARK: Song
 
-@app.post('/songs', tags=["Song"],response_model=schemas.Song,status_code=201)
-async def create_song(song_request: schemas.SongCreate, db: Session = Depends(get_db)):
+@app.post('/songs/request/by/{user_id}', tags=["Song"],response_model=schemas.Song,status_code=201)
+async def request_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
     """
-    Create a Song and store it in the database
+    Request a Song
     """
     # check if the event exists
     db_event = await EventRepo.fetch_by_uuid(db,song_request.event_id)
@@ -301,6 +301,13 @@ async def create_song(song_request: schemas.SongCreate, db: Session = Depends(ge
     song = await SongRepo.create(db=db, song=song_request)
     event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song_request.event_id)
     await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
+
+    # create a transaction
+    transaction = schemas.TransactionCreate(user_id=user_id,song_id=song.id,amount=song.amount)
+    await TransactionRepo.create(db=db, transaction=transaction)
+
+    await remove_from_user_balance(user_id=user_id, amount=song.amount, db=db)
+
     return song
 
 @app.post('/songs/{song_id}/remove', tags=["Song"])
@@ -312,6 +319,13 @@ async def delete_song(song_id: int, db: Session = Depends(get_db)):
     await SongRepo.delete(db=db, _id=song_id)
     event_of_song = await EventRepo.fetch_by_uuid(db=db, uuid=song.event_id)
     await send_event_update_to_websocket(event_of_song.uuid, event_of_song)
+
+    # refund balance based on transaction
+    transaction = await TransactionRepo.fetch_by_song_id(db=db, song_id=song_id)
+    for t in transaction:
+        await add_to_user_balance(user_id=t.user_id, amount=t.amount, db=db)
+    await TransactionRepo.delete_by_song_id(db=db, song_id=song_id)
+
     return JSONResponse(status_code=200, content={"message": "Song deleted successfully"})
 
 @app.put('/songs/{song_id}/amount/increase_by/{amount}', tags=["Song"],response_model=float)

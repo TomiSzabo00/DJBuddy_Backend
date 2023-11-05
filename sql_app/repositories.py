@@ -113,3 +113,36 @@ class SongRepo:
     async def update(db: Session,song_data):
         db.merge(song_data)
         db.commit()
+
+class TransactionRepo:
+    async def create(db: Session, transaction: schemas.TransactionCreate):
+        db_transaction = models.Transaction(user_id=transaction.user_id,song_id=transaction.song_id,amount=transaction.amount)
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        return schemas.Transaction.from_orm(db_transaction)
+    
+    async def fetch_by_id(db: Session,_id:int):
+        return db.query(models.Transaction).filter(models.Transaction.id == _id).first()
+    
+    async def fetch_by_song_id(db: Session,song_id:int):
+        query_results = db.query(models.Transaction).filter(models.Transaction.song_id == song_id).all()
+        list = []
+        for result in query_results:
+            list.append(schemas.Transaction.from_orm(result))
+        return list
+    
+    async def delete(db: Session,_id:int):
+        db_transaction = db.query(models.Transaction).filter_by(id=_id).first()
+        db.delete(db_transaction)
+        db.commit()
+
+    async def delete_by_song_id(db: Session,song_id:int):
+        db_transactions = db.query(models.Transaction).filter_by(song_id=song_id).all()
+        for db_transaction in db_transactions:
+            db.delete(db_transaction)
+        db.commit()
+        
+    async def update(db: Session,transaction_data):
+        db.merge(transaction_data)
+        db.commit()

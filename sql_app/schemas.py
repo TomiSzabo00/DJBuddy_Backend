@@ -71,3 +71,13 @@ class PaymentIntent(BaseModel):
     customer: str
     publishableKey: str
 
+class Transaction(BaseModel):
+    user_id: str
+    song_id: int
+    amount: float
+
+    class Config:
+        from_attributes = True
+
+class TransactionCreate(Transaction):
+    pass

@@ -50,3 +50,11 @@ association_table = Table(
     Column("user_id", ForeignKey("users.uuid"), primary_key=True),
     Column("event_id", ForeignKey("events.uuid"), primary_key=True),
 )
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True,index=True)
+    user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    song_id = Column(Integer, ForeignKey("songs.id"), nullable=False)
+    amount = Column(Float, nullable=False)
