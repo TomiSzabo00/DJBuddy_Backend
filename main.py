@@ -113,6 +113,22 @@ async def get_user(user_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found with the given ID")
     return db_user
 
+@app.put('/users/{user_id}/withdraw/', tags=["User"],response_model=float)
+async def withdraw_user_balance(user_id: str, amount: float | None = None, db: Session = Depends(get_db)):
+    """
+    Withdraw the balance of the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if amount is None:
+        amount = db_user.balance
+    if db_user.balance < amount:
+        raise HTTPException(status_code=400, detail="You do not have enough money to make this transaction")
+    db_user.balance -= amount
+    await UserRepo.update(db=db,user_data=db_user)
+
+    # TODO: send money to user's bank account
+
+    return db_user.balance
 
 
 
