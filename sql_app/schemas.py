@@ -17,6 +17,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     uuid: str
+    balance: float
 
     class Config:
         from_attributes = True
@@ -62,3 +63,21 @@ class Event(EventBase):
 
     class Config:
         from_attributes = True
+
+
+class PaymentIntent(BaseModel):
+    paymentIntent: str
+    ephemeralKey: str
+    customer: str
+    publishableKey: str
+
+class Transaction(BaseModel):
+    user_id: str
+    song_id: int
+    amount: float
+
+    class Config:
+        from_attributes = True
+
+class TransactionCreate(Transaction):
+    pass

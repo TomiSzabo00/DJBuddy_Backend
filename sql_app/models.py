@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String(80), nullable=False, unique=True)
     type = Column(String(10), nullable=False)
     profilePicUrl = Column(String, nullable=False)
+    balance = Column(Float, nullable=False, default=0)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
 
 class Event(Base):
@@ -49,3 +50,11 @@ association_table = Table(
     Column("user_id", ForeignKey("users.uuid"), primary_key=True),
     Column("event_id", ForeignKey("events.uuid"), primary_key=True),
 )
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True,index=True)
+    user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    song_id = Column(Integer, ForeignKey("songs.id"), nullable=False)
+    amount = Column(Float, nullable=False)
