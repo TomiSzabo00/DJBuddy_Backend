@@ -1,5 +1,5 @@
-from fastapi import Depends, FastAPI, HTTPException, status, WebSocket, Path
-from fastapi.responses import JSONResponse
+from fastapi import Depends, FastAPI, HTTPException, status, WebSocket, File, UploadFile
+from fastapi.responses import JSONResponse, FileResponse
 from sql_app import models
 from database import get_db, engine
 import sql_app.models as models
@@ -10,11 +10,11 @@ import uvicorn
 from typing import List
 import math
 import stripe
-from typing import Annotated
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
 ALGORITHM = "HS256"
+IMAGE_UPLOAD_PATH = "images/"
 
 app = FastAPI(title="Sample FastAPI Application",
     description="Sample FastAPI Application with Swagger and Sqlalchemy",
@@ -129,6 +129,46 @@ async def withdraw_user_balance(user_id: str, amount: float | None = None, db: S
     # TODO: send money to user's bank account
 
     return db_user.balance
+
+@app.put('/users/{user_id}/profile_pic/upload', tags=["User"],response_model=str)
+async def upload_user_profile_pic(user_id: str, pic: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    Upload a profile picture for the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+    
+    try:
+        pic.filename = user_id + ".jpg"
+        contents = await pic.read()
+        with open(IMAGE_UPLOAD_PATH + pic.filename, "wb") as f:
+            f.write(contents)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Failed to upload image")
+    finally:
+        pic.file.close()
+
+    db_user.profilePicUrl = "users/{user_id}/profile_pic".format(user_id=user_id)
+    await UserRepo.update(db=db,user_data=db_user)
+    return db_user.profilePicUrl
+
+@app.get('/users/{user_id}/profile_pic', tags=["User"])
+async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
+    """
+    Get the profile picture of the User with the given ID
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+    path = IMAGE_UPLOAD_PATH + user_id + ".jpg"
+    # check if file exists
+    try:
+        with open(path, "rb") as f:
+            pass
+    except Exception:
+        return ""
+    return FileResponse(path)
 
 
 
