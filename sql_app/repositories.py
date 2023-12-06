@@ -9,7 +9,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserRepo:
     async def create(db: Session, user: schemas.UserCreate):
         uuid_str = str(uuid.uuid4())
-        hashed_password = UserRepo.get_password_hash(user.password_string)
+        hashed_password = await UserRepo.get_password_hash(user.password_string)
         db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,firstName=user.firstName,lastName=user.lastName,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
         db.commit()
@@ -20,7 +20,7 @@ class UserRepo:
         user = await UserRepo.fetch_by_email(db,email)
         if not user:
             return False
-        if not UserRepo.verify_password(password, user.hashed_password):
+        if not await UserRepo.verify_password(password, user.hashed_password):
             return False
         return user
 
@@ -60,7 +60,9 @@ class EventRepo:
     
     async def fetch_by_uuid(db: Session,uuid:str):
         query_result = db.query(models.Event).filter(models.Event.uuid == uuid).first()
-        return schemas.Event.from_orm(query_result)
+        if query_result is None:
+            return None
+        return schemas.Event.model_validate(query_result)
     
     async def fetch_by_uuid_as_db_model(db: Session,uuid:str):
         return db.query(models.Event).filter(models.Event.uuid == uuid).first()
