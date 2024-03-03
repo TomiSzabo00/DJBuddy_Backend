@@ -195,12 +195,12 @@ async def get_event(event_id: str,db: Session = Depends(get_db)):
 @app.websocket("/ws/events/{event_id}")
 async def websocket_endpoint_for_event(websocket: WebSocket, event_id: str):
     await websocket.accept()
-    # check if event_websockets has key for event_id and if there is a list of websockets
+    # check if event_websockets has key for event_id
     if event_id not in event_websockets:
         event_websockets[event_id] = []
     event_websockets[event_id].append(websocket)
     while True:
-        # dont receive just keep connection alive
+        # don't receive just keep connection alive
         await websocket.receive_text()
 
 @app.websocket("/ws/events/{event_id}/themes")
