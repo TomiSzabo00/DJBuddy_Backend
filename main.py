@@ -333,6 +333,17 @@ async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)
     else:
         raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
+@app.get('/events/{event_id}/users/count', tags=["Event"],response_model=int)
+async def count_event_users(event_id: str, db: Session = Depends(get_db)):
+    """
+    Count the number of Users in an Event
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        return len(db_event.users)
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
 
 
 
