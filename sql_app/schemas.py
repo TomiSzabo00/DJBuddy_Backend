@@ -60,6 +60,7 @@ class EventCreate(EventBase):
 class Event(EventBase):
     uuid: str
     dj: User
+    code: str
 
     class Config:
         from_attributes = True

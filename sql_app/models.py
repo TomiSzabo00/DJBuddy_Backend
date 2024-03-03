@@ -31,6 +31,7 @@ class Event(Base):
     date = Column(String, nullable=False)
     state = Column(String, nullable=False)
     theme = Column(String, nullable=False)
+    code = Column(String, nullable=False)
     songs = relationship("Song",primaryjoin="Event.uuid == Song.event_id",cascade="all, delete-orphan")
     users = relationship("User",secondary="association_table_user_events", back_populates="events")
 

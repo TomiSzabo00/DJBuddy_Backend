@@ -52,7 +52,12 @@ class UserRepo:
 class EventRepo:  
     async def create(db: Session, event: schemas.EventCreate):
         uuid_str = str(uuid.uuid4())
-        db_event = models.Event(uuid=uuid_str,name=event.name,dj_id=event.dj_id,latitude=event.latitude,longitude=event.longitude,address_title=event.address_title,address_subtitle=event.address_subtitle,date=event.date,state=event.state,theme=event.theme)
+        event_code = '{}-{}-{}'.format(
+            uuid.uuid4().hex[:4],
+            uuid.uuid4().hex[:4],
+            uuid.uuid4().hex[:4]
+        )
+        db_event = models.Event(uuid=uuid_str,name=event.name,dj_id=event.dj_id,latitude=event.latitude,longitude=event.longitude,address_title=event.address_title,address_subtitle=event.address_subtitle,date=event.date,state=event.state,theme=event.theme, code=event_code)
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
