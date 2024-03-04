@@ -16,6 +16,8 @@ class User(Base):
     profilePicUrl = Column(String, nullable=False)
     balance = Column(Float, nullable=False, default=0)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
+    liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
+    liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
 
 class Event(Base):
     __tablename__ = "events"
@@ -50,6 +52,13 @@ association_table = Table(
     Base.metadata,
     Column("user_id", ForeignKey("users.uuid"), primary_key=True),
     Column("event_id", ForeignKey("events.uuid"), primary_key=True),
+)
+
+association_table_user_likes = Table(
+    "association_table_user_likes",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.uuid"), primary_key=True),
+    Column("dj_id", ForeignKey("users.uuid"), primary_key=True),
 )
 
 class Transaction(Base):

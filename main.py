@@ -170,6 +170,58 @@ async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
         return ""
     return FileResponse(path)
 
+# like a dj
+@app.put('/users/{user_id}/like/{dj_id}', tags=["User"])
+async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+    """
+    Like a DJ
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    db_dj = await UserRepo.fetch_by_id(db,dj_id)
+    if db_user and db_dj:
+        db_dj.liked_by.append(db_user)
+        await UserRepo.update(db=db,user_data=db_user)
+    else:
+        raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
+
+# unlike a dj
+@app.put('/users/{user_id}/unlike/{dj_id}', tags=["User"])
+async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+    """
+    Unlike a DJ
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    db_dj = await UserRepo.fetch_by_id(db,dj_id)
+    if db_user and db_dj:
+        db_dj.liked_by.remove(db_user)
+        await UserRepo.update(db=db,user_data=db_user)
+    else:
+        raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
+
+# is a dj liked by a user
+@app.get('/users/{user_id}/likes/{dj_id}', tags=["User"],response_model=bool)
+async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+    """
+    Check if a DJ is liked by a User
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    db_dj = await UserRepo.fetch_by_id(db,dj_id)
+    if db_user and db_dj:
+        return db_user in db_dj.liked_by
+    else:
+        raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
+
+# get all djs liked by a user
+@app.get('/users/{user_id}/likes', tags=["User"],response_model=List[schemas.User])
+async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
+    """
+    Get all DJs liked by a User
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user:
+        return db_user.liked
+    else:
+        raise HTTPException(status_code=400, detail="User not found with the given ID")
 
 
 
