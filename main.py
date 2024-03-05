@@ -212,14 +212,18 @@ async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
 
 # get all djs liked by a user
-@app.get('/users/{user_id}/likes', tags=["User"],response_model=List[schemas.User])
+@app.get('/users/{user_id}/likes', tags=["User"],response_model=List[schemas.LikedDJ])
 async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
     """
     Get all DJs liked by a User
     """
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user:
-        return db_user.liked
+        liked_djs = []
+        for dj in db_user.liked:
+            liked_dj = await UserRepo.fetch_by_id_as_liked_dj(db,dj.uuid)
+            liked_djs.append(liked_dj)
+        return liked_djs
     else:
         raise HTTPException(status_code=400, detail="User not found with the given ID")
 

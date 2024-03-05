@@ -33,6 +33,11 @@ class UserRepo:
     async def fetch_by_id(db: Session, user_id):
         return db.query(models.User).filter(models.User.uuid == user_id).first()
 
+    async def fetch_by_id_as_liked_dj(db: Session, user_id):
+        query_result = db.query(models.User).filter(models.User.uuid == user_id).first()
+        like_count = len(query_result.liked_by)
+        return schemas.LikedDJ(uuid=query_result.uuid,username=query_result.username,firstName=query_result.firstName,lastName=query_result.lastName,email=query_result.email,type=query_result.type,profilePicUrl=query_result.profilePicUrl,balance=query_result.balance,like_count=like_count)
+
     async def fetch_by_email(db: Session,email):
         return db.query(models.User).filter(models.User.email == email).first()
 

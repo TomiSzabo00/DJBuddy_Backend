@@ -22,6 +22,12 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class LikedDJ(User):
+    like_count: int
+
+    class Config:
+        from_attributes = True
+
 class LoginData(BaseModel):
     email: str
     password: str
