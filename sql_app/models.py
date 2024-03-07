@@ -18,6 +18,7 @@ class User(Base):
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
     liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
     liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
+    saved_songs = relationship("Song",secondary="association_table_user_saved_songs", back_populates="liked_by")
 
 class Event(Base):
     __tablename__ = "events"
@@ -46,6 +47,7 @@ class Song(Base):
     amount = Column(Float, nullable=False)
     albumArtUrl = Column(String, nullable=False)
     event_id = Column(String, ForeignKey("events.uuid"), nullable=False)
+    liked_by = relationship("User",secondary="association_table_user_saved_songs", back_populates="saved_songs")
 
 association_table = Table(
     "association_table_user_events",
@@ -59,6 +61,13 @@ association_table_user_likes = Table(
     Base.metadata,
     Column("user_id", ForeignKey("users.uuid"), primary_key=True),
     Column("dj_id", ForeignKey("users.uuid"), primary_key=True),
+)
+
+association_table_user_saved_songs = Table(
+    "association_table_user_saved_songs",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.uuid"), primary_key=True),
+    Column("song_id", ForeignKey("songs.id"), primary_key=True),
 )
 
 class Transaction(Base):

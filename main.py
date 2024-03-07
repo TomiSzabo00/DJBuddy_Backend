@@ -227,6 +227,52 @@ async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="User not found with the given ID")
 
+# get all saved songs of a user
+@app.get('/users/{user_id}/saved_songs', tags=["User"],response_model=List[schemas.Song])
+async def get_saved_songs_of_user(user_id: str, db: Session = Depends(get_db)):
+    """
+    Get all saved Songs of a User
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user:
+        return db_user.saved_songs
+    else:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+
+# post request to create and save a song
+@app.post('/users/{user_id}/save', tags=["User"],response_model=schemas.Song,status_code=201)
+async def save_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
+    """
+    Save a Song
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
+    schema_song = await SongRepo.create(db=db, song=song_request)
+    db_song = await SongRepo.fetch_by_id_as_db_model(db=db, _id=schema_song.id)
+    if not db_song:
+        raise HTTPException(status_code=404, detail="Song couldn't be created or couldn't be found")
+    db_user.saved_songs.append(db_song)
+    await UserRepo.update(db=db,user_data=db_user)
+    return schema_song
+
+
+# unsave a song
+@app.put('/users/{user_id}/unsave/{song_id}', tags=["User"])
+async def unsave_song(user_id: str, song_id: int, db: Session = Depends(get_db)):
+    """
+    Unsave a Song
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    db_song = await SongRepo.fetch_by_id_as_db_model(db=db, _id=song_id)
+    if db_user and db_song:
+        db_user.saved_songs.remove(db_song)
+        await UserRepo.update(db=db,user_data=db_user)
+        await SongRepo.delete(db=db,_id=song_id)
+    else:
+        raise HTTPException(status_code=404, detail="User or Song not found with the given ID")
+
+
 
 
 # MARK: Event
