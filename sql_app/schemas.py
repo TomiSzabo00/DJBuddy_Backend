@@ -88,3 +88,17 @@ class Transaction(BaseModel):
 
 class TransactionCreate(Transaction):
     pass
+
+class PlaylistBase(BaseModel):
+    name: str
+    user_id: str
+
+class PlaylistCreate(PlaylistBase):
+    pass
+
+class Playlist(PlaylistBase):
+    id: int
+    songs: List[Song] = []
+
+    class Config:
+        from_attributes = True
