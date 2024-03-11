@@ -315,7 +315,7 @@ async def add_song_to_playlist(playlist_id: int, song_request: schemas.SongCreat
     if db_song is None:
         raise HTTPException(status_code=404, detail="Song couldn't be created or couldn't be found")
     db_playlist.songs.append(db_song)
-    await UserRepo.update_playlist(db=db,playlist_data=db_playlist)
+    await PlaylistRepo.update(db=db,playlist_data=db_playlist)
     return JSONResponse(status_code=201, content={"message": "Song added to playlist successfully"})
 
 # remove a song from a playlist
