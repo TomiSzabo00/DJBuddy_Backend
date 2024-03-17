@@ -17,8 +17,10 @@ class User(Base):
     balance = Column(Float, nullable=False, default=0)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
     liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
+    liked_by_count = Column(Integer, nullable=False, default=0)
     liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
     saved_songs = relationship("Song",secondary="association_table_user_saved_songs", back_populates="liked_by")
+    playlists = relationship("Playlist",primaryjoin="User.uuid == Playlist.user_id",cascade="all, delete-orphan")
 
 class Event(Base):
     __tablename__ = "events"
@@ -34,6 +36,7 @@ class Event(Base):
     date = Column(String, nullable=False)
     state = Column(String, nullable=False)
     theme = Column(String, nullable=False)
+    playlist_id = Column(Integer, ForeignKey("playlists.id"), nullable=True, default=None)
     code = Column(String, nullable=False)
     songs = relationship("Song",primaryjoin="Event.uuid == Song.event_id",cascade="all, delete-orphan")
     users = relationship("User",secondary="association_table_user_events", back_populates="events")
@@ -48,6 +51,7 @@ class Song(Base):
     albumArtUrl = Column(String, nullable=False)
     event_id = Column(String, ForeignKey("events.uuid"), nullable=False)
     liked_by = relationship("User",secondary="association_table_user_saved_songs", back_populates="saved_songs")
+    playlist = relationship("Playlist",secondary="association_table_playlist_songs", back_populates="songs")
 
 association_table = Table(
     "association_table_user_events",
@@ -77,3 +81,18 @@ class Transaction(Base):
     user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
     song_id = Column(Integer, ForeignKey("songs.id"), nullable=False)
     amount = Column(Float, nullable=False)
+
+class Playlist(Base):
+    __tablename__ = "playlists"
+
+    id = Column(Integer, primary_key=True,index=True)
+    name = Column(String(80), nullable=False)
+    user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    songs = relationship("Song",secondary="association_table_playlist_songs", back_populates="playlist")
+
+association_table_playlist_songs = Table(
+    "association_table_playlist_songs",
+    Base.metadata,
+    Column("playlist_id", ForeignKey("playlists.id"), primary_key=True),
+    Column("song_id", ForeignKey("songs.id"), primary_key=True),
+)

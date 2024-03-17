@@ -35,7 +35,7 @@ class UserRepo:
 
     async def fetch_by_id_as_liked_dj(db: Session, user_id):
         query_result = db.query(models.User).filter(models.User.uuid == user_id).first()
-        like_count = len(query_result.liked_by)
+        like_count = query_result.liked_by_count
         return schemas.LikedDJ(uuid=query_result.uuid,username=query_result.username,firstName=query_result.firstName,lastName=query_result.lastName,email=query_result.email,type=query_result.type,profilePicUrl=query_result.profilePicUrl,balance=query_result.balance,like_count=like_count)
 
     async def fetch_by_email(db: Session,email):
@@ -158,3 +158,45 @@ class TransactionRepo:
     async def update(db: Session,transaction_data):
         db.merge(transaction_data)
         db.commit()
+
+class PlaylistRepo:
+    async def create(db: Session, playlist: schemas.PlaylistCreate):
+        db_playlist = models.Playlist(name=playlist.name,user_id=playlist.user_id)
+        db.add(db_playlist)
+        db.commit()
+        db.refresh(db_playlist)
+        return db_playlist
+    
+    async def fetch_by_id(db: Session,_id:int):
+        return db.query(models.Playlist).filter(models.Playlist.id == _id).first()
+    
+    async def delete(db: Session,_id:int):
+        db_playlist = db.query(models.Playlist).filter_by(id=_id).first()
+        db.delete(db_playlist)
+        db.commit()
+        
+    async def update(db: Session,playlist_data):
+        db.merge(playlist_data)
+        db.commit()
+    
+    async def add_song_to_playlist(db: Session,playlist_id:int,song_id:int):
+        db_playlist = db.query(models.Playlist).filter_by(id=playlist_id).first()
+        db_song = db.query(models.Song).filter_by(id=song_id).first()
+        db_playlist.songs.append(db_song)
+        db.commit()
+        db.refresh(db_playlist)
+    
+    async def remove_song_from_playlist(db: Session,playlist_id:int,song_id:int):
+        db_playlist = db.query(models.Playlist).filter_by(id=playlist_id).first()
+        db_song = db.query(models.Song).filter_by(id=song_id).first()
+        db_playlist.songs.remove(db_song)
+        db.commit()
+        db.refresh(db_playlist)
+    
+    async def fetch_songs_by_playlist_id(db: Session,playlist_id:int):
+        db_playlist = db.query(models.Playlist).filter_by(id=playlist_id).first()
+        return db_playlist.songs
+    
+    async def fetch_by_user_id(db: Session,user_id:str):
+        query_results = db.query(models.Playlist).filter(models.Playlist.user_id == user_id).all()
+        return query_results

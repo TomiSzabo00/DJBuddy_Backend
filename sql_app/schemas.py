@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 class UserBase(BaseModel):
@@ -58,6 +58,7 @@ class EventBase(BaseModel):
     date: str
     state: str
     theme: str
+    playlist_id: Optional[int] = None
     songs: List[Song] = []
 
 class EventCreate(EventBase):
@@ -88,3 +89,17 @@ class Transaction(BaseModel):
 
 class TransactionCreate(Transaction):
     pass
+
+class PlaylistBase(BaseModel):
+    name: str
+    user_id: str
+
+class PlaylistCreate(PlaylistBase):
+    pass
+
+class Playlist(PlaylistBase):
+    id: int
+    songs: List[Song] = []
+
+    class Config:
+        from_attributes = True

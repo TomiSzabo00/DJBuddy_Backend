@@ -4,7 +4,7 @@ from sql_app import models
 from database import get_db, engine
 import sql_app.models as models
 import sql_app.schemas as schemas
-from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo
+from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo, PlaylistRepo
 from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
@@ -180,6 +180,7 @@ async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
         db_dj.liked_by.append(db_user)
+        db_dj.liked_by_count += 1
         await UserRepo.update(db=db,user_data=db_user)
     else:
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
@@ -194,6 +195,7 @@ async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
         db_dj.liked_by.remove(db_user)
+        db_dj.liked_by_count -= 1
         await UserRepo.update(db=db,user_data=db_user)
     else:
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
@@ -272,6 +274,90 @@ async def unsave_song(user_id: str, song_id: int, db: Session = Depends(get_db))
     else:
         raise HTTPException(status_code=404, detail="User or Song not found with the given ID")
 
+
+
+# MARK: Playlist
+
+@app.post('/playlists/create', tags=["Playlist"],response_model=int,status_code=201)
+async def create_playlist(playlist_request: schemas.PlaylistCreate, db: Session = Depends(get_db)):
+    """
+    Create a Playlist and store it in the database
+    """
+    playlist = await PlaylistRepo.create(db=db, playlist=playlist_request)
+    return playlist.id
+
+# @app.get('/playlists/{playlist_id}', tags=["Playlist"],response_model=schemas.Playlist)
+# async def get_playlist(playlist_id: int, db: Session = Depends(get_db)):
+#     """
+#     Get the Playlist with the given ID
+#     """
+#     db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+#     if db_playlist is None:
+#         raise HTTPException(status_code=404, detail="Playlist not found with the given ID")
+#     return db_playlist
+
+@app.post('/playlists/{playlist_id}/remove', tags=["Playlist"],status_code=200)
+async def delete_playlist(playlist_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a Playlist from the database
+    """
+    return await PlaylistRepo.delete(db,playlist_id)
+
+# create and add a song to a playlist
+@app.post('/playlists/{playlist_id}/add_song', tags=["Playlist"],status_code=201)
+async def add_song_to_playlist(playlist_id: int, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
+    """
+    Add a Song to a Playlist
+    """
+    db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+    if db_playlist is None:
+        raise HTTPException(status_code=404, detail="Playlist not found with the given ID")
+    schema_song = await SongRepo.create(db=db, song=song_request)
+    db_song = await SongRepo.fetch_by_id_as_db_model(db=db, _id=schema_song.id)
+    if db_song is None:
+        raise HTTPException(status_code=404, detail="Song couldn't be created or couldn't be found")
+    db_playlist.songs.append(db_song)
+    await PlaylistRepo.update(db=db,playlist_data=db_playlist)
+    return JSONResponse(status_code=201, content={"message": "Song added to playlist successfully"})
+
+# remove a song from a playlist
+@app.post('/playlists/{playlist_id}/remove_song/{song_id}', tags=["Playlist"],status_code=200)
+async def remove_song_from_playlist(playlist_id: int, song_id: int, db: Session = Depends(get_db)):
+    """
+    Remove a Song from a Playlist
+    """
+    db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+    db_song = await SongRepo.fetch_by_id_as_db_model(db, song_id)
+    if db_playlist and db_song:
+        db_playlist.songs.remove(db_song)
+        await PlaylistRepo.update(db=db,playlist_data=db_playlist)
+        await SongRepo.delete(db=db,_id=song_id)
+    else:
+        raise HTTPException(status_code=404, detail="Playlist or Song not found with the given ID")
+
+# get all songs in a playlist
+@app.get('/playlists/{playlist_id}/songs', tags=["Playlist"],response_model=List[schemas.Song])
+async def get_playlist_songs(playlist_id: int, db: Session = Depends(get_db)):
+    """
+    Get all Songs in a Playlist
+    """
+    db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+    if db_playlist:
+        return db_playlist.songs
+    else:
+        raise HTTPException(status_code=404, detail="Playlist not found with the given ID")
+    
+# get all playlists of a user
+@app.get('/playlists/{user_id}', tags=["Playlist"],response_model=List[schemas.Playlist])
+async def get_user_playlists(user_id: str, db: Session = Depends(get_db)):
+    """
+    Get all Playlists of a User
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user:
+        return db_user.playlists
+    else:
+        raise HTTPException(status_code=404, detail="User not found with the given ID")
 
 
 
@@ -357,6 +443,50 @@ async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
     db_event = await EventRepo.fetch_by_uuid(db,event_id)
     if db_event:
         return db_event.theme
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
+#set playlist for an event
+@app.put('/events/{event_id}/playlist/{playlist_id}', tags=["Event"],response_model=schemas.Event)
+async def set_event_playlist(event_id: str, playlist_id: int, db: Session = Depends(get_db)):
+    """
+    Set the Playlist for the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+    if db_event and db_playlist:
+        db_event.playlist_id = playlist_id
+        await EventRepo.update(db=db,event_data=db_event)
+        await send_event_update_to_websocket(event_id, event=db_event)
+        return db_event
+    else:
+        raise HTTPException(status_code=400, detail="Event or Playlist not found with the given ID")
+
+# remove playlist from an event
+@app.post('/events/{event_id}/remove_playlist', tags=["Event"],response_model=schemas.Event)
+async def remove_event_playlist(event_id: str, db: Session = Depends(get_db)):
+    """
+    Remove the Playlist from the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        db_event.playlist_id = None
+        await EventRepo.update(db=db,event_data=db_event)
+        await send_event_update_to_websocket(event_id, event=db_event)
+        return db_event
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
+@app.get('/events/{event_id}/playlist', tags=["Event"],response_model=schemas.Playlist)
+async def get_event_playlist(event_id: str, db: Session = Depends(get_db)):
+    """
+    Get the Playlist associated with the given Event ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        if db_event.playlist_id is None:
+            return None
+        return await PlaylistRepo.fetch_by_id(db,db_event.playlist_id)
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
