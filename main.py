@@ -180,6 +180,7 @@ async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
         db_dj.liked_by.append(db_user)
+        db_dj.liked_by_count += 1
         await UserRepo.update(db=db,user_data=db_user)
     else:
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
@@ -194,6 +195,7 @@ async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
         db_dj.liked_by.remove(db_user)
+        db_dj.liked_by_count -= 1
         await UserRepo.update(db=db,user_data=db_user)
     else:
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")

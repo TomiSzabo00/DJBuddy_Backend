@@ -17,6 +17,7 @@ class User(Base):
     balance = Column(Float, nullable=False, default=0)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
     liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
+    liked_by_count = Column(Integer, nullable=False, default=0)
     liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
     saved_songs = relationship("Song",secondary="association_table_user_saved_songs", back_populates="liked_by")
     playlists = relationship("Playlist",primaryjoin="User.uuid == Playlist.user_id",cascade="all, delete-orphan")
