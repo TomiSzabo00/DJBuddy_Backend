@@ -446,6 +446,50 @@ async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
+#set playlist for an event
+@app.put('/events/{event_id}/playlist/{playlist_id}', tags=["Event"],response_model=schemas.Event)
+async def set_event_playlist(event_id: str, playlist_id: int, db: Session = Depends(get_db)):
+    """
+    Set the Playlist for the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    db_playlist = await PlaylistRepo.fetch_by_id(db,playlist_id)
+    if db_event and db_playlist:
+        db_event.playlist_id = playlist_id
+        await EventRepo.update(db=db,event_data=db_event)
+        await send_event_update_to_websocket(event_id, event=db_event)
+        return db_event
+    else:
+        raise HTTPException(status_code=400, detail="Event or Playlist not found with the given ID")
+
+# remove playlist from an event
+@app.post('/events/{event_id}/remove_playlist', tags=["Event"],response_model=schemas.Event)
+async def remove_event_playlist(event_id: str, db: Session = Depends(get_db)):
+    """
+    Remove the Playlist from the Event with the given ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        db_event.playlist_id = None
+        await EventRepo.update(db=db,event_data=db_event)
+        await send_event_update_to_websocket(event_id, event=db_event)
+        return db_event
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
+@app.get('/events/{event_id}/playlist', tags=["Event"],response_model=schemas.Playlist)
+async def get_event_playlist(event_id: str, db: Session = Depends(get_db)):
+    """
+    Get the Playlist associated with the given Event ID
+    """
+    db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
+    if db_event:
+        if db_event.playlist_id is None:
+            return None
+        return await PlaylistRepo.fetch_by_id(db,db_event.playlist_id)
+    else:
+        raise HTTPException(status_code=400, detail="Event not found with the given ID")
+
 @app.get('/events/all/', tags=["Event"],response_model=List[schemas.Event])
 async def get_all_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
     """
