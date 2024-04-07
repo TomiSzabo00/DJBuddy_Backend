@@ -10,15 +10,25 @@ import uvicorn
 from typing import List
 import math
 import stripe
+from fastapi.middleware.cors import CORSMiddleware
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
 ALGORITHM = "HS256"
 IMAGE_UPLOAD_PATH = "images/"
 
-app = FastAPI(title="Sample FastAPI Application",
+app = FastAPI(title="Backend for DJBuddy",
     description="Sample FastAPI Application with Swagger and Sqlalchemy",
     version="1.0.0",)
+
+origins = ["*"]
+app.add_middleware(
+ CORSMiddleware,
+ allow_origins=origins,
+ allow_credentials=True,
+ allow_methods=["*"],
+ allow_headers=["*"],
+)
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -32,7 +42,7 @@ event_theme_websockets = {}
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=9000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=9000, reload=True)
 
 @app.exception_handler(Exception)
 def validation_exception_handler(request, err):
@@ -40,7 +50,11 @@ def validation_exception_handler(request, err):
     return JSONResponse(status_code=400, content={"message": f"{base_error_message}. Detail: {err}"})
 
 
+# MARK: Test
 
+@app.get("/api/test", tags=["Test"])
+async def test():
+ return "Hello World!"
 
 
 # MARK: User
