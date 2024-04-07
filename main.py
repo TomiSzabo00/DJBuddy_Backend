@@ -59,7 +59,7 @@ async def test():
 
 # MARK: User
 
-@app.post("/users/login", tags=["User"], response_model=schemas.User,status_code=200)
+@app.post("/api/users/login", tags=["User"], response_model=schemas.User,status_code=200)
 async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
     user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
     if not user:
@@ -70,7 +70,7 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
         )
     return user
 
-@app.post('/users/register', tags=["User"],response_model=schemas.User,status_code=201)
+@app.post('/api/users/register', tags=["User"],response_model=schemas.User,status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Create a User and store it in the database
@@ -82,7 +82,7 @@ async def register_user(user_request: schemas.UserCreate, db: Session = Depends(
 
     return await UserRepo.create(db=db, user=user_request)
 
-@app.get('/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
+@app.get('/api/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
 async def get_user_events(user_id: str,db: Session = Depends(get_db)):
     """
     Get the Events associated with the given User ID
@@ -95,7 +95,7 @@ async def get_user_events(user_id: str,db: Session = Depends(get_db)):
         return events
     return db_user.events
 
-@app.put('/users/{user_id}/balance/{amount}', tags=["User"],response_model=float)
+@app.put('/api/users/{user_id}/balance/{amount}', tags=["User"],response_model=float)
 async def add_to_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
     """
     Update the balance of the User with the given ID
@@ -105,7 +105,7 @@ async def add_to_user_balance(user_id: str, amount: float, db: Session = Depends
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.balance
 
-@app.put('/users/{user_id}/balance/{amount}/remove', tags=["User"],response_model=float)
+@app.put('/api/users/{user_id}/balance/{amount}/remove', tags=["User"],response_model=float)
 async def remove_from_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
     """
     Update the balance of the User with the given ID
@@ -117,7 +117,7 @@ async def remove_from_user_balance(user_id: str, amount: float, db: Session = De
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.balance
 
-@app.get('/users/{user_id}', tags=["User"],response_model=schemas.User)
+@app.get('/api/users/{user_id}', tags=["User"],response_model=schemas.User)
 async def get_user(user_id: str,db: Session = Depends(get_db)):
     """
     Get the User with the given ID
@@ -127,7 +127,7 @@ async def get_user(user_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found with the given ID")
     return db_user
 
-@app.put('/users/{user_id}/withdraw/', tags=["User"],response_model=float)
+@app.put('/api/users/{user_id}/withdraw/', tags=["User"],response_model=float)
 async def withdraw_user_balance(user_id: str, amount: float | None = None, db: Session = Depends(get_db)):
     """
     Withdraw the balance of the User with the given ID
@@ -144,7 +144,7 @@ async def withdraw_user_balance(user_id: str, amount: float | None = None, db: S
 
     return db_user.balance
 
-@app.put('/users/{user_id}/profile_pic/upload', tags=["User"],response_model=str)
+@app.put('/api/users/{user_id}/profile_pic/upload', tags=["User"],response_model=str)
 async def upload_user_profile_pic(user_id: str, pic: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Upload a profile picture for the User with the given ID
@@ -167,7 +167,7 @@ async def upload_user_profile_pic(user_id: str, pic: UploadFile = File(...), db:
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.profilePicUrl
 
-@app.get('/users/{user_id}/profile_pic', tags=["User"])
+@app.get('/api/users/{user_id}/profile_pic', tags=["User"])
 async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
     """
     Get the profile picture of the User with the given ID
@@ -185,7 +185,7 @@ async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
     return FileResponse(path)
 
 # like a dj
-@app.put('/users/{user_id}/like/{dj_id}', tags=["User"])
+@app.put('/api/users/{user_id}/like/{dj_id}', tags=["User"])
 async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     """
     Like a DJ
@@ -200,7 +200,7 @@ async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
 
 # unlike a dj
-@app.put('/users/{user_id}/unlike/{dj_id}', tags=["User"])
+@app.put('/api/users/{user_id}/unlike/{dj_id}', tags=["User"])
 async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     """
     Unlike a DJ
@@ -215,7 +215,7 @@ async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
 
 # is a dj liked by a user
-@app.get('/users/{user_id}/likes/{dj_id}', tags=["User"],response_model=bool)
+@app.get('/api/users/{user_id}/likes/{dj_id}', tags=["User"],response_model=bool)
 async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(get_db)):
     """
     Check if a DJ is liked by a User
@@ -228,7 +228,7 @@ async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail="User or DJ not found with the given ID")
 
 # get all djs liked by a user
-@app.get('/users/{user_id}/likes', tags=["User"],response_model=List[schemas.LikedDJ])
+@app.get('/api/users/{user_id}/likes', tags=["User"],response_model=List[schemas.LikedDJ])
 async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
     """
     Get all DJs liked by a User
@@ -244,7 +244,7 @@ async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="User not found with the given ID")
 
 # get all saved songs of a user
-@app.get('/users/{user_id}/saved_songs', tags=["User"],response_model=List[schemas.Song])
+@app.get('/api/users/{user_id}/saved_songs', tags=["User"],response_model=List[schemas.Song])
 async def get_saved_songs_of_user(user_id: str, db: Session = Depends(get_db)):
     """
     Get all saved Songs of a User
@@ -256,7 +256,7 @@ async def get_saved_songs_of_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found with the given ID")
 
 # post request to create and save a song
-@app.post('/users/{user_id}/save', tags=["User"],response_model=schemas.Song,status_code=201)
+@app.post('/api/users/{user_id}/save', tags=["User"],response_model=schemas.Song,status_code=201)
 async def save_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
     """
     Save a Song
@@ -274,7 +274,7 @@ async def save_song(user_id: str, song_request: schemas.SongCreate, db: Session 
 
 
 # unsave a song
-@app.put('/users/{user_id}/unsave/{song_id}', tags=["User"])
+@app.put('/api/users/{user_id}/unsave/{song_id}', tags=["User"])
 async def unsave_song(user_id: str, song_id: int, db: Session = Depends(get_db)):
     """
     Unsave a Song
@@ -292,7 +292,7 @@ async def unsave_song(user_id: str, song_id: int, db: Session = Depends(get_db))
 
 # MARK: Playlist
 
-@app.post('/playlists/create', tags=["Playlist"],response_model=int,status_code=201)
+@app.post('/api/playlists/create', tags=["Playlist"],response_model=int,status_code=201)
 async def create_playlist(playlist_request: schemas.PlaylistCreate, db: Session = Depends(get_db)):
     """
     Create a Playlist and store it in the database
@@ -310,7 +310,7 @@ async def create_playlist(playlist_request: schemas.PlaylistCreate, db: Session 
 #         raise HTTPException(status_code=404, detail="Playlist not found with the given ID")
 #     return db_playlist
 
-@app.post('/playlists/{playlist_id}/remove', tags=["Playlist"],status_code=200)
+@app.post('/api/playlists/{playlist_id}/remove', tags=["Playlist"],status_code=200)
 async def delete_playlist(playlist_id: int, db: Session = Depends(get_db)):
     """
     Delete a Playlist from the database
@@ -318,7 +318,7 @@ async def delete_playlist(playlist_id: int, db: Session = Depends(get_db)):
     return await PlaylistRepo.delete(db,playlist_id)
 
 # create and add a song to a playlist
-@app.post('/playlists/{playlist_id}/add_song', tags=["Playlist"],status_code=201)
+@app.post('/api/playlists/{playlist_id}/add_song', tags=["Playlist"],status_code=201)
 async def add_song_to_playlist(playlist_id: int, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
     """
     Add a Song to a Playlist
@@ -335,7 +335,7 @@ async def add_song_to_playlist(playlist_id: int, song_request: schemas.SongCreat
     return JSONResponse(status_code=201, content={"message": "Song added to playlist successfully"})
 
 # remove a song from a playlist
-@app.post('/playlists/{playlist_id}/remove_song/{song_id}', tags=["Playlist"],status_code=200)
+@app.post('/api/playlists/{playlist_id}/remove_song/{song_id}', tags=["Playlist"],status_code=200)
 async def remove_song_from_playlist(playlist_id: int, song_id: int, db: Session = Depends(get_db)):
     """
     Remove a Song from a Playlist
@@ -350,7 +350,7 @@ async def remove_song_from_playlist(playlist_id: int, song_id: int, db: Session 
         raise HTTPException(status_code=404, detail="Playlist or Song not found with the given ID")
 
 # get all songs in a playlist
-@app.get('/playlists/{playlist_id}/songs', tags=["Playlist"],response_model=List[schemas.Song])
+@app.get('/api/playlists/{playlist_id}/songs', tags=["Playlist"],response_model=List[schemas.Song])
 async def get_playlist_songs(playlist_id: int, db: Session = Depends(get_db)):
     """
     Get all Songs in a Playlist
@@ -362,7 +362,7 @@ async def get_playlist_songs(playlist_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Playlist not found with the given ID")
     
 # get all playlists of a user
-@app.get('/playlists/{user_id}', tags=["Playlist"],response_model=List[schemas.Playlist])
+@app.get('/api/playlists/{user_id}', tags=["Playlist"],response_model=List[schemas.Playlist])
 async def get_user_playlists(user_id: str, db: Session = Depends(get_db)):
     """
     Get all Playlists of a User
@@ -377,14 +377,14 @@ async def get_user_playlists(user_id: str, db: Session = Depends(get_db)):
 
 # MARK: Event
 
-@app.post('/events/create', tags=["Event"],response_model=schemas.Event,status_code=201)
+@app.post('/api/events/create', tags=["Event"],response_model=schemas.Event,status_code=201)
 async def create_event(event_request: schemas.EventCreate, db: Session = Depends(get_db)):
     """
     Create an Event and store it in the database
     """
     return await EventRepo.create(db=db, event=event_request)
 
-@app.get('/events/{event_id}', tags=["Event"],response_model=schemas.Event)
+@app.get('/api/events/{event_id}', tags=["Event"],response_model=schemas.Event)
 async def get_event(event_id: str,db: Session = Depends(get_db)):
     """
     Get the Event with the given ID
@@ -435,7 +435,7 @@ async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Eve
             except:
                 print("!!!!!  Failed to send event update to websocket, it was probably closed")
 
-@app.post('/events/{event_id}/theme/{theme}', tags=["Event"],response_model=schemas.Event)
+@app.post('/api/events/{event_id}/theme/{theme}', tags=["Event"],response_model=schemas.Event)
 async def update_event_theme(event_id: str, theme: str, db: Session = Depends(get_db)):
     """
     Update the theme of the Event with the given ID
@@ -449,7 +449,7 @@ async def update_event_theme(event_id: str, theme: str, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.get('/events/{event_id}/theme', tags=["Event"],response_model=str)
+@app.get('/api/events/{event_id}/theme', tags=["Event"],response_model=str)
 async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
     """
     Get the theme of the Event with the given ID
@@ -461,7 +461,7 @@ async def get_event_theme(event_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
 #set playlist for an event
-@app.put('/events/{event_id}/playlist/{playlist_id}', tags=["Event"],response_model=schemas.Event)
+@app.put('/api/events/{event_id}/playlist/{playlist_id}', tags=["Event"],response_model=schemas.Event)
 async def set_event_playlist(event_id: str, playlist_id: int, db: Session = Depends(get_db)):
     """
     Set the Playlist for the Event with the given ID
@@ -477,7 +477,7 @@ async def set_event_playlist(event_id: str, playlist_id: int, db: Session = Depe
         raise HTTPException(status_code=400, detail="Event or Playlist not found with the given ID")
 
 # remove playlist from an event
-@app.post('/events/{event_id}/remove_playlist', tags=["Event"],response_model=schemas.Event)
+@app.post('/api/events/{event_id}/remove_playlist', tags=["Event"],response_model=schemas.Event)
 async def remove_event_playlist(event_id: str, db: Session = Depends(get_db)):
     """
     Remove the Playlist from the Event with the given ID
@@ -491,7 +491,7 @@ async def remove_event_playlist(event_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.get('/events/{event_id}/playlist', tags=["Event"],response_model=schemas.Playlist)
+@app.get('/api/events/{event_id}/playlist', tags=["Event"],response_model=schemas.Playlist)
 async def get_event_playlist(event_id: str, db: Session = Depends(get_db)):
     """
     Get the Playlist associated with the given Event ID
@@ -504,14 +504,14 @@ async def get_event_playlist(event_id: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.get('/events/all/', tags=["Event"],response_model=List[schemas.Event])
+@app.get('/api/events/all/', tags=["Event"],response_model=List[schemas.Event])
 async def get_all_events(skip: int = 0, limit: int = 100,db: Session = Depends(get_db)):
     """
     Get all Events
     """
     return await EventRepo.fetch_all(db=db, skip=skip, limit=limit)
 
-@app.get('/events/near_me/', tags=["Event"],response_model=List[schemas.Event])
+@app.get('/api/events/near_me/', tags=["Event"],response_model=List[schemas.Event])
 async def get_near_me_events(latitude: float, longitude: float, distance: float = 20, db: Session = Depends(get_db)):
     """
     Get all Events near the given latitude and longitude
@@ -523,7 +523,7 @@ async def get_near_me_events(latitude: float, longitude: float, distance: float 
             events_near_me.append(event)
     return events_near_me
 
-@app.get('/events/{event_id}/songs', tags=["Event"],response_model=List[schemas.Song])
+@app.get('/api/events/{event_id}/songs', tags=["Event"],response_model=List[schemas.Song])
 async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
     """
     Get the Songs associated with the given Event ID
@@ -533,7 +533,7 @@ async def get_event_songs(event_id: str,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found with the given ID")
     return db_event.songs
 
-@app.post('/events/{event_id}/state/{state}', tags=["Event"],response_model=schemas.Event)
+@app.post('/api/events/{event_id}/state/{state}', tags=["Event"],response_model=schemas.Event)
 async def update_event_state(event_id: str, state: str, db: Session = Depends(get_db)):
     """
     Update the state of the Event with the given ID
@@ -547,7 +547,7 @@ async def update_event_state(event_id: str, state: str, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail="Event not found with the given ID")
 
-@app.put('/events/{event_id}/join/{user_id}', tags=["Event"],response_model=schemas.Event)
+@app.put('/api/events/{event_id}/join/{user_id}', tags=["Event"],response_model=schemas.Event)
 async def join_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
     """
     Add a User to an Event
@@ -563,7 +563,7 @@ async def join_event(event_id: str, user_id: str, db: Session = Depends(get_db))
     else:
         raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
-@app.put('/events/{event_id}/leave/{user_id}', tags=["Event"],response_model=schemas.Event)
+@app.put('/api/events/{event_id}/leave/{user_id}', tags=["Event"],response_model=schemas.Event)
 async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
     """
     Remove a User from an Event
@@ -579,7 +579,7 @@ async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)
     else:
         raise HTTPException(status_code=400, detail="User or Event not found with the given ID")
 
-@app.get('/events/{event_id}/users/count', tags=["Event"],response_model=int)
+@app.get('/api/events/{event_id}/users/count', tags=["Event"],response_model=int)
 async def count_event_users(event_id: str, db: Session = Depends(get_db)):
     """
     Count the number of Users in an Event
@@ -596,7 +596,7 @@ async def count_event_users(event_id: str, db: Session = Depends(get_db)):
 
 # MARK: Song
 
-@app.post('/songs/request/by/{user_id}', tags=["Song"],response_model=schemas.Song,status_code=201)
+@app.post('/api/songs/request/by/{user_id}', tags=["Song"],response_model=schemas.Song,status_code=201)
 async def request_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
     """
     Request a Song
@@ -623,7 +623,7 @@ async def request_song(user_id: str, song_request: schemas.SongCreate, db: Sessi
 
     return song
 
-@app.post('/songs/{song_id}/remove', tags=["Song"])
+@app.post('/api/songs/{song_id}/remove', tags=["Song"])
 async def delete_song(song_id: int, db: Session = Depends(get_db)):
     """
     Delete a Song from the database
@@ -641,7 +641,7 @@ async def delete_song(song_id: int, db: Session = Depends(get_db)):
 
     return JSONResponse(status_code=200, content={"message": "Song deleted successfully"})
 
-@app.put('/songs/{song_id}/amount/increase_by/{amount}', tags=["Song"],response_model=float)
+@app.put('/api/songs/{song_id}/amount/increase_by/{amount}', tags=["Song"],response_model=float)
 async def increase_song_amount(song_id: int, amount: float, db: Session = Depends(get_db)):
     """
     Update the amount of a Song
@@ -685,7 +685,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 
 
 # MARK: Payment
-@app.get('/payment/create/', tags=["Payment"],response_model=schemas.PaymentIntent)
+@app.get('/api/payment/create/', tags=["Payment"],response_model=schemas.PaymentIntent)
 async def create_payment(amount: float, db: Session = Depends(get_db)):
     """
     Create a Payment and return the Payment Intent Client Secret
