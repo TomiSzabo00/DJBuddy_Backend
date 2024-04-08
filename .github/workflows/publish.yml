@@ -20,6 +20,6 @@ jobs:
           username: ${{ secrets.AWS_EC2_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            cd /home/ubuntu/DJBuddy_Backend
+            cd /home/${{ secrets.AWS_EC2_USER }}/DJBuddy_Backend
             git pull
-            systemctl restart nginx
+            sudo systemctl restart nginx
