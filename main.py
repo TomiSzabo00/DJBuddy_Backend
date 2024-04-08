@@ -54,7 +54,7 @@ def validation_exception_handler(request, err):
 
 @app.get("/api/test", tags=["Test"])
 async def test():
- return "Hello World!"
+ return "Hello World! CI/CD checking..."
 
 
 # MARK: User
