@@ -31,9 +31,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install -r requirements.txt
           pip install httpx pytest
 
       - name: Run tests
         run: |
           pytest -v
-        continue-on-error: true
+          test_result=$?
+          if [ $test_result -ne 0 ]; then
+            echo "Tests failed. Exiting with code $test_result"
+            exit 1  # Explicitly mark the job as failed
+          fi
