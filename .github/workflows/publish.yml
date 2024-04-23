@@ -23,3 +23,17 @@ jobs:
             cd /home/${{ secrets.AWS_EC2_USER }}/DJBuddy_Backend
             git pull
             sudo systemctl restart nginx
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx pytest
+
+      - name: Run tests
+        run: |
+          pytest -v
+        continue-on-error: true
