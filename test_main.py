@@ -70,7 +70,7 @@ async def test_update_user_balance_negative():
         assert remove.status_code == 400, "User balance could be subtracted to negative"
 
 def test_get_event_theme():
-    theme = "61b09489-6525-47a5-b473-3bc22dc6756a"
+    theme = "271f30fe-b540-4a73-8675-015227b381fd"
     response = client.get(
         "api/events/%s/theme" % theme,
     )
