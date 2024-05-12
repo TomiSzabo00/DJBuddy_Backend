@@ -4,7 +4,7 @@ from sql_app import models
 from database import get_db, engine
 import sql_app.models as models
 import sql_app.schemas as schemas
-from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo, PlaylistRepo
+from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo, PlaylistRepo, VerificationTokenRepo
 from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
@@ -45,14 +45,14 @@ ses_client = boto3.client(
     aws_secret_access_key='8DmzW1AfPijji1XW3eP0Ca3KXFOxH0t2WIERWsqC'
 )
 
-@app.get("/send_email/{emailAddress}")
-async def send_email(emailAddress: str):
+@app.get("/send_email/{emailAddress}/code/{code}")
+async def send_email(emailAddress: str, code: str):
     response = ses_client.send_email(
         Source='registration@djbuddy.online',
         Destination={'ToAddresses': [emailAddress]},
         Message={
             'Subject': {'Data': 'Welcome to DJBuddy!'},
-            'Body': {'Text': {'Data': 'Welcome to DJBuddy!'}}
+            'Body': {'Text': {'Data': 'Your verification code is: ' + code}}
         }
     )
 
@@ -60,7 +60,7 @@ async def send_email(emailAddress: str):
     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
         return {"message": "Email sent successfully"}
     else:
-        return {"message": "Failed to send email"}
+        raise HTTPException(status_code=400, detail="Failed to send email")
 
 
 if __name__ == "__main__":
@@ -96,7 +96,7 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
         )
     return user
 
-@app.post('/api/users/register', tags=["User"],response_model=schemas.User,status_code=201)
+@app.post('/api/users/register', tags=["User"], response_model=str, status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Create a User and store it in the database
@@ -105,8 +105,32 @@ async def register_user(user_request: schemas.UserCreate, db: Session = Depends(
     db_user = await UserRepo.fetch_by_email(db, email=user_request.email)
     if db_user:
         raise HTTPException(status_code=400, detail="User already exists!")
+    
+    user = await UserRepo.create(db=db, user=user_request)
+    verification_token = await VerificationTokenRepo.fetch_by_user_id(db=db,user_id=user.uuid)
+    if user and verification_token:
+        await send_email(user.email, verification_token.token)
+        return user.uuid
+    else:
+        if user:
+            await UserRepo.delete(db=db,user_id=user.uuid)
+        raise HTTPException(status_code=400, detail="Failed to create user")
 
-    return await UserRepo.create(db=db, user=user_request)
+
+@app.post('/api/users/verify/{user_id}/with/{code}', tags=["User"],response_model=schemas.User)
+async def verify_user(user_id: str, code: str, db: Session = Depends(get_db)):
+    """
+    Verify a User
+    """
+    db_user = await UserRepo.fetch_by_id(db,user_id)
+    if db_user:
+        success = await UserRepo.verify_user(db=db,user_id=db_user.uuid,verification_token=code)
+        if success:
+            return db_user
+        else:
+            raise HTTPException(status_code=400, detail="The verification code is incorrect")
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
 
 @app.get('/api/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
 async def get_user_events(user_id: str,db: Session = Depends(get_db)):

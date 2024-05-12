@@ -104,3 +104,10 @@ class Playlist(PlaylistBase):
 
     class Config:
         from_attributes = True
+
+class VerificationToken(BaseModel):
+    token: str
+    user_id: str
+
+    class Config:
+        from_attributes = True

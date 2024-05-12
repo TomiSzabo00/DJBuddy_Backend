@@ -1,3 +1,5 @@
+import random
+import string
 from sqlalchemy.orm import Session
 from sql_app import models
 from sql_app import schemas
@@ -12,6 +14,7 @@ class UserRepo:
         hashed_password = await UserRepo.get_password_hash(user.password_string)
         db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,firstName=user.firstName,lastName=user.lastName,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
+        await VerificationTokenRepo.create(db,uuid_str)
         db.commit()
         db.refresh(db_user)
         return db_user
@@ -54,11 +57,17 @@ class UserRepo:
         db.commit()
         return updated_user
     
-    async def verify_user(db: Session,user_id):
-        db_user = db.query(models.User).filter_by(uuid=user_id).first()
-        db_user.is_verified = True
-        db.commit()
-        return db_user
+    async def verify_user(db: Session,user_id,verification_token):
+        db_verification_token = await VerificationTokenRepo.fetch_by_user_id(db,user_id)
+        if db_verification_token is None:
+            return False
+        if db_verification_token.token == verification_token:
+            db_user = db.query(models.User).filter_by(uuid=user_id).first()
+            db_user.is_verified = True
+            await VerificationTokenRepo.delete(db,user_id)
+            db.commit()
+            return True
+        return False
     
 class EventRepo:  
     async def create(db: Session, event: schemas.EventCreate):
@@ -206,3 +215,34 @@ class PlaylistRepo:
     async def fetch_by_user_id(db: Session,user_id:str):
         query_results = db.query(models.Playlist).filter(models.Playlist.user_id == user_id).all()
         return query_results
+
+class VerificationTokenRepo:
+    def generate_verification_code(length=6):
+        characters = string.ascii_letters + string.digits
+        verification_code = ''.join(random.choice(characters) for _ in range(length))
+        return verification_code
+
+    async def create(db: Session, user_id:str):
+        verification_token = VerificationTokenRepo.generate_verification_code()
+        db_verification_token = models.VerificationToken(user_id=user_id,token=verification_token)
+        db.add(db_verification_token)
+        db.commit()
+        db.refresh(db_verification_token)
+        return verification_token
+    
+    async def fetch_by_user_id(db: Session,user_id:str):
+        return db.query(models.VerificationToken).filter(models.VerificationToken.user_id == user_id).first()
+    
+    async def delete(db: Session,user_id:str):
+        db_verification_token = db.query(models.VerificationToken).filter_by(user_id=user_id).first()
+        db.delete(db_verification_token)
+        db.commit()
+        
+    async def delete_by_token(db: Session,token:str):
+        db_verification_token = db.query(models.VerificationToken).filter_by(token=token).first()
+        db.delete(db_verification_token)
+        db.commit()
+        
+    async def update(db: Session,verification_token_data):
+        db.merge(verification_token_data)
+        db.commit()

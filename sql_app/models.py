@@ -97,3 +97,10 @@ association_table_playlist_songs = Table(
     Column("playlist_id", ForeignKey("playlists.id"), primary_key=True),
     Column("song_id", ForeignKey("songs.id"), primary_key=True),
 )
+
+class VerificationToken(Base):
+    __tablename__ = "verification_tokens"
+
+    id = Column(Integer, primary_key=True,index=True)
+    user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    token = Column(String, nullable=False)
