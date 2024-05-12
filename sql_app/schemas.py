@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     uuid: str
     balance: float
+    is_verified: bool
 
     class Config:
         from_attributes = True

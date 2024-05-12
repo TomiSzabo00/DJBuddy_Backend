@@ -11,6 +11,7 @@ from typing import List
 import math
 import stripe
 from fastapi.middleware.cors import CORSMiddleware
+import boto3
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
@@ -37,8 +38,29 @@ event_websockets = {}
 event_theme_websockets = {}
 
 
+ses_client = boto3.client(
+    'ses',
+    region_name='eu-north-1',
+    aws_access_key_id='AKIAZI2LFL4DBEWTHAX7',
+    aws_secret_access_key='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'
+)
 
+@app.get("/send_email/{emailAddress}")
+async def send_email(emailAddress: str):
+    response = ses_client.send_email(
+        Source='registration@djbuddy.online',
+        Destination={'ToAddresses': [emailAddress]},
+        Message={
+            'Subject': {'Data': 'Welcome to DJBuddy!'},
+            'Body': {'Text': {'Data': 'Welcome to DJBuddy!'}}
+        }
+    )
 
+    # Check if email was successfully sent
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        return {"message": "Email sent successfully"}
+    else:
+        return {"message": "Failed to send email"}
 
 
 if __name__ == "__main__":
@@ -66,7 +88,11 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail="Email is not verified yet",
         )
     return user
 

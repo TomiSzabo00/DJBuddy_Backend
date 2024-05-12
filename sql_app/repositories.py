@@ -54,6 +54,12 @@ class UserRepo:
         db.commit()
         return updated_user
     
+    async def verify_user(db: Session,user_id):
+        db_user = db.query(models.User).filter_by(uuid=user_id).first()
+        db_user.is_verified = True
+        db.commit()
+        return db_user
+    
 class EventRepo:  
     async def create(db: Session, event: schemas.EventCreate):
         uuid_str = str(uuid.uuid4())
