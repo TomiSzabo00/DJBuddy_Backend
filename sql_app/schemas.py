@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     uuid: str
     balance: float
+    is_verified: bool
 
     class Config:
         from_attributes = True
@@ -100,6 +101,13 @@ class PlaylistCreate(PlaylistBase):
 class Playlist(PlaylistBase):
     id: int
     songs: List[Song] = []
+
+    class Config:
+        from_attributes = True
+
+class VerificationToken(BaseModel):
+    token: str
+    user_id: str
 
     class Config:
         from_attributes = True
