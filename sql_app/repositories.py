@@ -1,3 +1,4 @@
+import datetime
 import random
 import string
 from sqlalchemy.orm import Session
@@ -5,6 +6,7 @@ from sql_app import models
 from sql_app import schemas
 import uuid
 from passlib.context import CryptContext
+from pytz import utc
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -42,6 +44,10 @@ class UserRepo:
         return schemas.LikedDJ(uuid=query_result.uuid,username=query_result.username,firstName=query_result.firstName,lastName=query_result.lastName,email=query_result.email,type=query_result.type,profilePicUrl=query_result.profilePicUrl,balance=query_result.balance,like_count=like_count)
 
     async def fetch_by_email(db: Session,email):
+        query = db.query(models.User).filter(models.User.email == email).first()
+        return schemas.User.model_validate(query)
+
+    async def fetch_by_email_as_db_model(db: Session,email):
         return db.query(models.User).filter(models.User.email == email).first()
 
     async def fetch_all(db: Session, skip: int = 0, limit: int = 100):
@@ -68,6 +74,12 @@ class UserRepo:
             db.commit()
             return True
         return False
+    
+    async def fetch_by_auth_token(db: Session,auth_token):
+        user_id = await AuthenticationTokenRepo.fetch_uid_by_token(db,auth_token.token)
+        if user_id is None:
+            return None
+        return await UserRepo.fetch_by_id(db,user_id)
     
 class EventRepo:  
     async def create(db: Session, event: schemas.EventCreate):
@@ -246,3 +258,53 @@ class VerificationTokenRepo:
     async def update(db: Session,verification_token_data):
         db.merge(verification_token_data)
         db.commit()
+
+class AuthenticationTokenRepo:
+    async def create(db: Session, user_id:str, token:str | None = None):
+        existing_token = await AuthenticationTokenRepo.fetch_by_user_id(db,user_id)
+        if existing_token is not None:
+            await AuthenticationTokenRepo.delete(db,user_id)
+
+        if token is None:
+            token = uuid.uuid4().hex
+        expires = datetime.datetime.now().astimezone(utc) + datetime.timedelta(hours=3)
+        expires_str = expires.isoformat()
+        db_authentication_token = models.AuthenticationToken(user_id=user_id,token=token,expires=expires_str)
+        db.add(db_authentication_token)
+        db.commit()
+        db.refresh(db_authentication_token)
+        return db_authentication_token
+    
+    async def fetch_by_user_id(db: Session,user_id:str):
+        return db.query(models.AuthenticationToken).filter(models.AuthenticationToken.user_id == user_id).first()
+    
+    async def fetch_uid_by_token(db: Session,token:str):
+        query_result = db.query(models.AuthenticationToken).filter(models.AuthenticationToken.token == token).first()
+        if query_result is None:
+            return None
+        return query_result.user_id
+    
+    async def delete(db: Session,user_id:str):
+        db_authentication_token = db.query(models.AuthenticationToken).filter_by(user_id=user_id).first()
+        db.delete(db_authentication_token)
+        db.commit()
+    
+    async def refresh(db: Session,user_id:str):
+        db_authentication_token = await AuthenticationTokenRepo.fetch_by_user_id(db,user_id)
+        db_authentication_token.expires = datetime.datetime.now() + datetime.timedelta(hours=3)
+        db.refresh(db_authentication_token)
+        db.commit()
+        return db_authentication_token
+    
+    async def authenticate(db: Session,auth_token:str):
+        query_result = db.query(models.AuthenticationToken).filter(models.AuthenticationToken.token == auth_token).first()
+        if query_result is None:
+            return False
+        
+        token_model = schemas.AuthenticationToken.model_validate(query_result)
+        expiry = datetime.datetime.fromisoformat(token_model.expires)
+        now = datetime.datetime.now().astimezone(utc)
+        if expiry < now:
+            await AuthenticationTokenRepo.delete(db,token_model.user_id)
+            return False
+        return True

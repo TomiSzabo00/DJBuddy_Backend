@@ -19,6 +19,7 @@ class User(UserBase):
     uuid: str
     balance: float
     is_verified: bool
+    is_social: bool
 
     class Config:
         from_attributes = True
@@ -32,6 +33,7 @@ class LikedDJ(User):
 class LoginData(BaseModel):
     email: str
     password: str
+    auth_token: str
 
 class SongBase(BaseModel):
     title: str
@@ -108,6 +110,14 @@ class Playlist(PlaylistBase):
 class VerificationToken(BaseModel):
     token: str
     user_id: str
+
+    class Config:
+        from_attributes = True
+
+class AuthenticationToken(BaseModel):
+    token: str
+    user_id: str
+    expires: str
 
     class Config:
         from_attributes = True

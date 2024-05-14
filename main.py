@@ -1,10 +1,10 @@
-from fastapi import Depends, FastAPI, HTTPException, status, WebSocket, File, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, status, WebSocket, File, UploadFile, Header
 from fastapi.responses import JSONResponse, FileResponse
 from sql_app import models
 from database import get_db, engine
 import sql_app.models as models
 import sql_app.schemas as schemas
-from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo, PlaylistRepo, VerificationTokenRepo
+from sql_app.repositories import UserRepo, EventRepo, SongRepo, TransactionRepo, PlaylistRepo, VerificationTokenRepo, AuthenticationTokenRepo
 from sqlalchemy.orm import Session
 import uvicorn
 from typing import List
@@ -83,18 +83,30 @@ async def test():
 
 @app.post("/api/users/login", tags=["User"], response_model=schemas.User,status_code=200)
 async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
-    user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
-    if not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_406_NOT_ACCEPTABLE,
-            detail="Email is not verified yet",
-        )
-    return user
+    if not login_data.auth_token:
+        user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+            )
+        if not user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                detail="Email is not verified yet",
+            )
+                
+        auth_token = await AuthenticationTokenRepo.create(db, user.uuid)
+    else:
+        if not await AuthenticationTokenRepo.authenticate(db, login_data.auth_token):
+            raise HTTPException(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                detail="Invalid or expired auth token",
+            )
+        user = await UserRepo.fetch_by_email(db, login_data.email)
+        auth_token = await AuthenticationTokenRepo.refresh(db, user.uuid)
+
+    return JSONResponse(status_code=200, headers={"user_token": auth_token.token}, content=user.model_dump())
 
 @app.post('/api/users/register', tags=["User"], response_model=str, status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -126,7 +138,8 @@ async def verify_user(user_id: str, code: str, db: Session = Depends(get_db)):
     if db_user:
         success = await UserRepo.verify_user(db=db,user_id=db_user.uuid,verification_token=code)
         if success:
-            return db_user
+            auth_token = await AuthenticationTokenRepo.create(db, db_user.uuid)
+            return await login_user(schemas.LoginData(email=db_user.email, password="", auth_token=auth_token.token), db)
         else:
             raise HTTPException(status_code=400, detail="The verification code is incorrect")
     else:
