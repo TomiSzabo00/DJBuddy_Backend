@@ -310,3 +310,8 @@ class AuthenticationTokenRepo:
             await AuthenticationTokenRepo.delete(db,token_model.user_id)
             return False
         return True
+    
+    async def validate_and_get_user_id(db: Session,auth_token:str):
+        if not await AuthenticationTokenRepo.authenticate(db,auth_token):
+            return None
+        return await AuthenticationTokenRepo.fetch_uid_by_token(db,auth_token)

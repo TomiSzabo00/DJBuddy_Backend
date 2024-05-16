@@ -146,11 +146,14 @@ async def verify_user(user_id: str, code: str, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
 
-@app.get('/api/users/{user_id}/events', tags=["User"],response_model=List[schemas.Event])
-async def get_user_events(user_id: str,db: Session = Depends(get_db)):
+@app.get('/api/users/events', tags=["User"],response_model=List[schemas.Event])
+async def get_user_events(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get the Events associated with the given User ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
