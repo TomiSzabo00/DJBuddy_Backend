@@ -45,6 +45,8 @@ class UserRepo:
 
     async def fetch_by_email(db: Session,email):
         query = db.query(models.User).filter(models.User.email == email).first()
+        if query is None:
+            return None
         return schemas.User.model_validate(query)
 
     async def fetch_by_email_as_db_model(db: Session,email):
