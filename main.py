@@ -154,6 +154,7 @@ async def get_user_events(token: str = Header(None, alias="user_token"), db: Ses
     user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
     if user_id is None:
         raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
@@ -162,21 +163,29 @@ async def get_user_events(token: str = Header(None, alias="user_token"), db: Ses
         return events
     return db_user.events
 
-@app.put('/api/users/{user_id}/balance/{amount}', tags=["User"],response_model=float)
-async def add_to_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
+@app.put('/api/users/balance/{amount}', tags=["User"],response_model=float)
+async def add_to_user_balance(amount: float, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Update the balance of the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     db_user.balance += amount
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.balance
 
-@app.put('/api/users/{user_id}/balance/{amount}/remove', tags=["User"],response_model=float)
-async def remove_from_user_balance(user_id: str, amount: float, db: Session = Depends(get_db)):
+@app.put('/api/users/balance/remove/{amount}', tags=["User"],response_model=float)
+async def remove_from_user_balance(amount: float, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Update the balance of the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user.balance < amount:
         raise HTTPException(status_code=400, detail=APIError.notEnoughMoney.value)
@@ -184,21 +193,29 @@ async def remove_from_user_balance(user_id: str, amount: float, db: Session = De
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.balance
 
-@app.get('/api/users/{user_id}', tags=["User"],response_model=schemas.User)
-async def get_user(user_id: str,db: Session = Depends(get_db)):
+@app.get('/api/users', tags=["User"],response_model=schemas.User)
+async def get_user(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
     return db_user
 
-@app.put('/api/users/{user_id}/withdraw/', tags=["User"],response_model=float)
-async def withdraw_user_balance(user_id: str, amount: float | None = None, db: Session = Depends(get_db)):
+@app.put('/api/users/withdraw/', tags=["User"],response_model=float)
+async def withdraw_user_balance(amount: float | None = None, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Withdraw the balance of the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if amount is None:
         amount = db_user.balance
@@ -211,11 +228,15 @@ async def withdraw_user_balance(user_id: str, amount: float | None = None, db: S
 
     return db_user.balance
 
-@app.put('/api/users/{user_id}/profile_pic/upload', tags=["User"],response_model=str)
-async def upload_user_profile_pic(user_id: str, pic: UploadFile = File(...), db: Session = Depends(get_db)):
+@app.put('/api/users/profile_pic/upload', tags=["User"],response_model=str)
+async def upload_user_profile_pic(pic: UploadFile = File(...), token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Upload a profile picture for the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
@@ -234,11 +255,15 @@ async def upload_user_profile_pic(user_id: str, pic: UploadFile = File(...), db:
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.profilePicUrl
 
-@app.get('/api/users/{user_id}/profile_pic', tags=["User"])
-async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
+@app.get('/api/users/profile_pic', tags=["User"])
+async def get_user_profile_pic(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get the profile picture of the User with the given ID
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
@@ -252,11 +277,15 @@ async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
     return FileResponse(path)
 
 # like a dj
-@app.put('/api/users/{user_id}/like/{dj_id}', tags=["User"])
-async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+@app.put('/api/users/like/{dj_id}', tags=["User"])
+async def like_dj(dj_id: str, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Like a DJ
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
@@ -267,11 +296,15 @@ async def like_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=APIError.userNotFound.value)
 
 # unlike a dj
-@app.put('/api/users/{user_id}/unlike/{dj_id}', tags=["User"])
-async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+@app.put('/api/users/unlike/{dj_id}', tags=["User"])
+async def unlike_dj(dj_id: str, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Unlike a DJ
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
@@ -282,11 +315,15 @@ async def unlike_dj(user_id: str, dj_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=APIError.userNotFound.value)
 
 # is a dj liked by a user
-@app.get('/api/users/{user_id}/likes/{dj_id}', tags=["User"],response_model=bool)
-async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(get_db)):
+@app.get('/api/users/likes/{dj_id}', tags=["User"],response_model=bool)
+async def is_dj_liked_by_user(dj_id: str, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Check if a DJ is liked by a User
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     db_dj = await UserRepo.fetch_by_id(db,dj_id)
     if db_user and db_dj:
@@ -295,11 +332,15 @@ async def is_dj_liked_by_user(user_id: str, dj_id: str, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail=APIError.userNotFound.value)
 
 # get all djs liked by a user
-@app.get('/api/users/{user_id}/likes', tags=["User"],response_model=List[schemas.LikedDJ])
-async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
+@app.get('/api/users/likes', tags=["User"],response_model=List[schemas.LikedDJ])
+async def get_djs_liked_by_user(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get all DJs liked by a User
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user:
         liked_djs = []
@@ -311,11 +352,15 @@ async def get_djs_liked_by_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=APIError.userNotFound.value)
 
 # get all saved songs of a user
-@app.get('/api/users/{user_id}/saved_songs', tags=["User"],response_model=List[schemas.Song])
-async def get_saved_songs_of_user(user_id: str, db: Session = Depends(get_db)):
+@app.get('/api/users/saved_songs', tags=["User"],response_model=List[schemas.Song])
+async def get_saved_songs_of_user(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get all saved Songs of a User
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user:
         return db_user.saved_songs
@@ -323,11 +368,15 @@ async def get_saved_songs_of_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
 
 # post request to create and save a song
-@app.post('/api/users/{user_id}/save', tags=["User"],response_model=schemas.Song,status_code=201)
-async def save_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
+@app.post('/api/users/save', tags=["User"],response_model=schemas.Song,status_code=201)
+async def save_song(song_request: schemas.SongCreate, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Save a Song
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
@@ -341,11 +390,15 @@ async def save_song(user_id: str, song_request: schemas.SongCreate, db: Session 
 
 
 # unsave a song
-@app.put('/api/users/{user_id}/unsave/{song_id}', tags=["User"])
-async def unsave_song(user_id: str, song_id: int, db: Session = Depends(get_db)):
+@app.put('/api/users/unsave/{song_id}', tags=["User"])
+async def unsave_song(song_id: int, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Unsave a Song
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     db_song = await SongRepo.fetch_by_id_as_db_model(db=db, _id=song_id)
     if not db_user:
@@ -423,11 +476,15 @@ async def get_playlist_songs(playlist_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=APIError.playlistNotFound.value)
     
 # get all playlists of a user
-@app.get('/api/playlists/{user_id}', tags=["Playlist"],response_model=List[schemas.Playlist])
-async def get_user_playlists(user_id: str, db: Session = Depends(get_db)):
+@app.get('/api/users/playlists', tags=["Users"],response_model=List[schemas.Playlist])
+async def get_user_playlists(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Get all Playlists of a User
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user:
         return db_user.playlists
@@ -610,11 +667,15 @@ async def update_event_state(event_id: str, state: str, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail=APIError.eventNotFound.value)
 
-@app.put('/api/events/{event_id}/join/{user_id}', tags=["Event"],response_model=schemas.Event)
-async def join_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
+@app.put('/api/events/{event_id}/join', tags=["Event"],response_model=schemas.Event)
+async def join_event(event_id: str, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Add a User to an Event
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if not db_user:
@@ -628,11 +689,15 @@ async def join_event(event_id: str, user_id: str, db: Session = Depends(get_db))
     await EventRepo.update(db=db,event_data=db_event)
     return schemas.Event.from_orm(db_event)
 
-@app.put('/api/events/{event_id}/leave/{user_id}', tags=["Event"],response_model=schemas.Event)
-async def leave_event(event_id: str, user_id: str, db: Session = Depends(get_db)):
+@app.put('/api/events/{event_id}/leave', tags=["Event"],response_model=schemas.Event)
+async def leave_event(event_id: str, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Remove a User from an Event
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     db_event = await EventRepo.fetch_by_uuid_as_db_model(db,event_id)
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if not db_user:
@@ -663,11 +728,15 @@ async def count_event_users(event_id: str, db: Session = Depends(get_db)):
 
 # MARK: Song
 
-@app.post('/api/songs/request/by/{user_id}', tags=["Song"],response_model=schemas.Song,status_code=201)
-async def request_song(user_id: str, song_request: schemas.SongCreate, db: Session = Depends(get_db)):
+@app.post('/api/songs/request', tags=["Song"],response_model=schemas.Song,status_code=201)
+async def request_song(song_request: schemas.SongCreate, token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
     """
     Request a Song
     """
+    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
     # check if the event exists
     db_event = await EventRepo.fetch_by_uuid(db,song_request.event_id)
     if db_event is None:
