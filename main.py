@@ -255,15 +255,11 @@ async def upload_user_profile_pic(pic: UploadFile = File(...), token: str = Head
     await UserRepo.update(db=db,user_data=db_user)
     return db_user.profilePicUrl
 
-@app.get('/api/users/profile_pic', tags=["User"])
-async def get_user_profile_pic(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
+@app.get('/api/users/{user_id}/profile_pic', tags=["User"])
+async def get_user_profile_pic(user_id: str, db: Session = Depends(get_db)):
     """
     Get the profile picture of the User with the given ID
     """
-    user_id = await AuthenticationTokenRepo.validate_and_get_user_id(db, token)
-    if user_id is None:
-        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
-    
     db_user = await UserRepo.fetch_by_id(db,user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail=APIError.userNotFound.value)
@@ -543,6 +539,7 @@ async def send_event_update_to_websocket(event_id: str, event: schemas.Event):
                 print("!!!!!  Sent event update to websocket")
             except:
                 print("!!!!!  Failed to send event update to websocket, it was probably closed")
+                print(len(event_websockets))
 
 async def send_event_theme_update_to_websocket(event_id: str, theme: schemas.Event):
     if event_id in event_theme_websockets:
@@ -755,7 +752,7 @@ async def request_song(song_request: schemas.SongCreate, token: str = Header(Non
     transaction = schemas.TransactionCreate(user_id=user_id,song_id=song.id,amount=song.amount)
     await TransactionRepo.create(db=db, transaction=transaction)
 
-    await remove_from_user_balance(user_id=user_id, amount=song.amount, db=db)
+    await remove_from_user_balance(amount=song.amount, token=token, db=db)
 
     return song
 
