@@ -7,6 +7,7 @@ from sql_app import schemas
 import uuid
 from passlib.context import CryptContext
 from pytz import utc
+from social_auth_models.social_auth import SocialUser
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -17,6 +18,16 @@ class UserRepo:
         db_user = models.User(uuid=uuid_str,username=user.username,hashed_password=hashed_password,firstName=user.firstName,lastName=user.lastName,email=user.email,type=user.type,profilePicUrl=user.profilePicUrl)
         db.add(db_user)
         await VerificationTokenRepo.create(db,uuid_str)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    
+    async def create_social_user(db: Session, user: SocialUser):
+        uuid_str = str(uuid.uuid4())
+        first_name = user.name.split(' ')[0]
+        last_name = user.name.split(' ')[1]
+        db_user = models.User(uuid=uuid_str,username="",hashed_password="",firstName=first_name,lastName=last_name,email=user.email,type='user',profilePicUrl=user.picture_url,is_social=True, is_verified=True)
+        db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user

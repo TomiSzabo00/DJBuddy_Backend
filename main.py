@@ -13,6 +13,13 @@ import stripe
 from fastapi.middleware.cors import CORSMiddleware
 import boto3
 from error import APIError
+from authlib.integrations.starlette_client import OAuth
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
+import requests
+from social_auth_models.google_auth import GoogleUser
+from social_auth_models.facebook_auth import FacebookUser
+from social_auth_models.social_auth import SocialUser
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
@@ -30,6 +37,40 @@ app.add_middleware(
  allow_credentials=True,
  allow_methods=["*"],
  allow_headers=["*"],
+)
+
+app.add_middleware(SessionMiddleware, secret_key="some-random-string")
+
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id='541079351993-0v81ahpb0f3tfdv9ldv2gt1102upav0v.apps.googleusercontent.com',
+    client_secret='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',
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    refresh_token_url=None,
+    refresh_token_params=None,
+    userinfo_url='https://www.googleapis.com/oauth2/v3/userinfo',
+    userinfo_params=None,
+    jwks_uri="https://www.googleapis.com/oauth2/v3/certs",
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+oauth.register(
+    name='facebook',
+    client_id='1162784558084780',
+    client_secret='279e0f42118fcbfa4c3795a506d9062c',
+    authorize_url='https://www.facebook.com/dialog/oauth',
+    authorize_params=None,
+    access_token_url='https://graph.facebook.com/oauth/access_token',
+    access_token_params=None,
+    refresh_token_url=None,
+    refresh_token_params=None,
+    userinfo_url='https://graph.facebook.com/me',
+    userinfo_params=None,
+    client_kwargs={'scope': 'email'},
 )
 
 models.Base.metadata.create_all(bind=engine)
@@ -108,6 +149,63 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
         auth_token = await AuthenticationTokenRepo.refresh(db, user.uuid)
 
     return JSONResponse(status_code=200, headers={"user_token": auth_token.token}, content=user.model_dump())
+
+@app.get("/login/google")
+async def login_via_google(request: Request):
+    redirect_uri = request.url_for('auth_via_google')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google")
+async def auth_via_google(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    userinfo_url = 'https://www.googleapis.com/oauth2/v3/userinfo'
+    headers = {'Authorization': f'Bearer {token["access_token"]}'}
+    response = requests.get(userinfo_url, headers=headers)
+    if response.status_code == 200:
+        user_info = response.json()
+        user = GoogleUser(
+            sub=user_info.get('sub', ''),
+            name=user_info.get('name', ''),
+            given_name=user_info.get('given_name', ''),
+            family_name=user_info.get('family_name', ''),
+            email=user_info.get('email', ''),
+            email_verified=user_info.get('email_verified', False),
+            locale=user_info.get('locale', ''),
+            picture_url=user_info.get("picture", "")
+        )
+        return await create_user_from_social(user, db)
+    else:
+        raise HTTPException(status_code=response.status_code, detail=APIError.general("Failed to fetch user profile from Google"))
+
+@app.get("/login/facebook")
+async def login_via_facebook(request: Request):
+    redirect_uri = request.url_for('auth_via_facebook')
+    return await oauth.facebook.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/facebook")
+async def auth_via_facebook(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.facebook.authorize_access_token(request)
+    profile_url = "https://graph.facebook.com/me?fields=id,name,email,picture&access_token=" + token['access_token']
+    response = requests.get(profile_url)
+    if response.status_code == 200:
+        user_profile = response.json()
+        user = FacebookUser(
+            id=user_profile.get('id', ''),
+            name=user_profile.get('name', ''),
+            email=user_profile.get('email', ''),
+            picture_url = user_profile.get("picture", {}).get("data", {}).get("url", "")
+        )
+        return await create_user_from_social(user, db)
+    else:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch user profile")
+
+async def create_user_from_social(user: SocialUser, db: Session):
+    db_user = await UserRepo.fetch_by_email(db, user.email)
+    if db_user is None:
+        db_user = await UserRepo.create_social_user(db, user)
+    elif not db_user.is_social:
+        raise HTTPException(status_code=400, detail=APIError.general("Email already in use"))
+    return db_user
 
 @app.post('/api/users/register', tags=["User"], response_model=str, status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
