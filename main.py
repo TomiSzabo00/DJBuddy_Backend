@@ -20,6 +20,7 @@ import requests
 from social_auth_models.google_auth import GoogleUser
 from social_auth_models.facebook_auth import FacebookUser
 from social_auth_models.social_auth import SocialUser
+import os
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
@@ -44,8 +45,8 @@ app.add_middleware(SessionMiddleware, secret_key="some-random-string")
 oauth = OAuth()
 oauth.register(
     name='google',
-    client_id='541079351993-0v81ahpb0f3tfdv9ldv2gt1102upav0v.apps.googleusercontent.com',
-    client_secret='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',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
     authorize_url='https://accounts.google.com/o/oauth2/auth',
     authorize_params=None,
     access_token_url='https://accounts.google.com/o/oauth2/token',
@@ -60,8 +61,8 @@ oauth.register(
 
 oauth.register(
     name='facebook',
-    client_id='1162784558084780',
-    client_secret='279e0f42118fcbfa4c3795a506d9062c',
+    client_id=os.getenv('FACEBOOK_CLIENT_ID'),
+    client_secret=os.getenv('FACEBOOK_CLIENT_SECRET'),
     authorize_url='https://www.facebook.com/dialog/oauth',
     authorize_params=None,
     access_token_url='https://graph.facebook.com/oauth/access_token',
@@ -83,8 +84,8 @@ event_theme_websockets = {}
 ses_client = boto3.client(
     'ses',
     region_name='eu-north-1',
-    aws_access_key_id='AKIAZI2LFL4DBEWTHAX7',
-    aws_secret_access_key='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'
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
 )
 
 @app.get("/send_email/{emailAddress}/code/{code}")
