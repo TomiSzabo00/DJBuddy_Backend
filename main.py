@@ -159,7 +159,7 @@ async def login_via_google(request: Request):
     redirect_uri = request.url_for('auth_via_google')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@app.get("/auth/google")
+@app.get("/api/auth/google")
 async def auth_via_google(request: Request, db: Session = Depends(get_db)):
     token = await oauth.google.authorize_access_token(request)
     userinfo_url = 'https://www.googleapis.com/oauth2/v3/userinfo'
@@ -186,7 +186,7 @@ async def login_via_facebook(request: Request):
     redirect_uri = request.url_for('auth_via_facebook')
     return await oauth.facebook.authorize_redirect(request, redirect_uri)
 
-@app.get("/auth/facebook")
+@app.get("/api/auth/facebook")
 async def auth_via_facebook(request: Request, db: Session = Depends(get_db)):
     token = await oauth.facebook.authorize_access_token(request)
     profile_url = "https://graph.facebook.com/me?fields=id,name,email,picture&access_token=" + token['access_token']
