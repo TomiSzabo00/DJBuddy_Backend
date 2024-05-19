@@ -15,9 +15,11 @@ class User(Base):
     type = Column(String(10), nullable=False)
     profilePicUrl = Column(String, nullable=False)
     balance = Column(Float, nullable=False, default=0)
+    liked_by_count = Column(Integer, nullable=False, default=0)
+    is_verified = Column(Integer, nullable=False, default=False)
+    is_social = Column(Integer, nullable=False, default=False)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
     liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
-    liked_by_count = Column(Integer, nullable=False, default=0)
     liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
     saved_songs = relationship("Song",secondary="association_table_user_saved_songs", back_populates="liked_by")
     playlists = relationship("Playlist",primaryjoin="User.uuid == Playlist.user_id",cascade="all, delete-orphan")
@@ -96,3 +98,17 @@ association_table_playlist_songs = Table(
     Column("playlist_id", ForeignKey("playlists.id"), primary_key=True),
     Column("song_id", ForeignKey("songs.id"), primary_key=True),
 )
+
+class VerificationToken(Base):
+    __tablename__ = "verification_tokens"
+
+    id = Column(Integer, primary_key=True,index=True)
+    user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
+    token = Column(String, nullable=False)
+
+class AuthenticationToken(Base):
+    __tablename__ = "authentication_tokens"
+
+    user_id = Column(String, ForeignKey("users.uuid"), primary_key=True)
+    token = Column(String, nullable=False)
+    expires = Column(String, nullable=False)
