@@ -17,6 +17,7 @@ class User(Base):
     balance = Column(Float, nullable=False, default=0)
     liked_by_count = Column(Integer, nullable=False, default=0)
     is_verified = Column(Integer, nullable=False, default=False)
+    is_social = Column(Integer, nullable=False, default=False)
     events = relationship("Event",secondary="association_table_user_events", back_populates="users")
     liked_by = relationship("User",secondary="association_table_user_likes", back_populates="liked", primaryjoin="User.uuid == association_table_user_likes.c.user_id", secondaryjoin="User.uuid == association_table_user_likes.c.dj_id")
     liked = relationship("User",secondary="association_table_user_likes", back_populates="liked_by", primaryjoin="User.uuid == association_table_user_likes.c.dj_id", secondaryjoin="User.uuid == association_table_user_likes.c.user_id")
@@ -104,3 +105,10 @@ class VerificationToken(Base):
     id = Column(Integer, primary_key=True,index=True)
     user_id = Column(String, ForeignKey("users.uuid"), nullable=False)
     token = Column(String, nullable=False)
+
+class AuthenticationToken(Base):
+    __tablename__ = "authentication_tokens"
+
+    user_id = Column(String, ForeignKey("users.uuid"), primary_key=True)
+    token = Column(String, nullable=False)
+    expires = Column(String, nullable=False)
