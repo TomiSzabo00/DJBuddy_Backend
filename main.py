@@ -21,6 +21,9 @@ from social_auth_models.google_auth import GoogleUser
 from social_auth_models.facebook_auth import FacebookUser
 from social_auth_models.social_auth import SocialUser
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 stripe.api_key = 'sk_test_51O84UAKBcww6so5SD73G0w50hwkZaxaA90i86otBIkmMhApg4RgLrknonQJyjsjk2mFS8NW10xLcd2GxnLfzMxhz00eewtKn2R'
 SECRET_KEY = "5736f10d085954fd50e4706e4eabd16a420100588937319231822869bbdfe363"
