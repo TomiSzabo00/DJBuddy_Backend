@@ -13,16 +13,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Install SSH key and deploy
+      - name: Install SSH key and deploy (Improved Security)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.AWS_EC2_ADDRESS }}
           username: ${{ secrets.AWS_EC2_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.AWS_EC2_USER }}/DJBuddy_Backend
-            git pull origin main
-            sudo systemctl restart nginx
+            # SSH into the server
+            ssh ${{ secrets.AWS_EC2_USER }}@${{ secrets.AWS_EC2_ADDRESS }} << EOF  # Here document for secure script
+              cd /home/${{ secrets.AWS_EC2_USER }}/DJBuddy_Backend
+              git pull origin main
+              sudo systemctl restart nginx
+            EOF
       
       - name: Set up Python
         uses: actions/setup-python@v2
