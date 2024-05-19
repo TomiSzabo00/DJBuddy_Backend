@@ -150,7 +150,7 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
 
     return JSONResponse(status_code=200, headers={"user_token": auth_token.token}, content=user.model_dump())
 
-@app.get("/login/google")
+@app.get("/api/login/google")
 async def login_via_google(request: Request):
     redirect_uri = request.url_for('auth_via_google')
     return await oauth.google.authorize_redirect(request, redirect_uri)
@@ -177,7 +177,7 @@ async def auth_via_google(request: Request, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=response.status_code, detail=APIError.general("Failed to fetch user profile from Google"))
 
-@app.get("/login/facebook")
+@app.get("/api/login/facebook")
 async def login_via_facebook(request: Request):
     redirect_uri = request.url_for('auth_via_facebook')
     return await oauth.facebook.authorize_redirect(request, redirect_uri)
@@ -203,9 +203,16 @@ async def create_user_from_social(user: SocialUser, db: Session):
     db_user = await UserRepo.fetch_by_email(db, user.email)
     if db_user is None:
         db_user = await UserRepo.create_social_user(db, user)
+        auth_token = await AuthenticationTokenRepo.create(db, db_user.uuid)
     elif not db_user.is_social:
         raise HTTPException(status_code=400, detail=APIError.general("Email already in use"))
-    return db_user
+    else:
+        auth_token = await AuthenticationTokenRepo.fetch_by_user_id(db, db_user.uuid)
+    
+    if auth_token is None:
+        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+    
+    return JSONResponse(status_code=200, content={"result": "success", "user_token": auth_token.token, "email": db_user.email})
 
 @app.post('/api/users/register', tags=["User"], response_model=str, status_code=201)
 async def register_user(user_request: schemas.UserCreate, db: Session = Depends(get_db)):
