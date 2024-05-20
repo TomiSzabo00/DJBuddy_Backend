@@ -78,7 +78,7 @@ class APIError(Enum):
         error_code=ErrorCode.DUPLICATE_ENTRY,
     ).to_dict()
 
-    def general(self, message: str):
+    def general(message: str):
         return CustomError(
             message=message,
             error_code=ErrorCode.UNDEFINED,
