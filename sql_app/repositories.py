@@ -290,7 +290,7 @@ class AuthenticationTokenRepo:
 
         if token is None:
             token = uuid.uuid4().hex
-        expires = datetime.datetime.now().astimezone(utc) + datetime.timedelta(hours=3)
+        expires = datetime.datetime.now().astimezone(utc) + datetime.timedelta(hours=12)
         expires_str = expires.isoformat()
         db_authentication_token = models.AuthenticationToken(user_id=user_id,token=token,expires=expires_str)
         db.add(db_authentication_token)
@@ -316,7 +316,7 @@ class AuthenticationTokenRepo:
         db_authentication_token = await AuthenticationTokenRepo.fetch_by_user_id(db,user_id)
         if db_authentication_token is None:
             return None
-        db_authentication_token.expires = datetime.datetime.now() + datetime.timedelta(hours=3)
+        db_authentication_token.expires = datetime.datetime.now() + datetime.timedelta(hours=12)
         db.refresh(db_authentication_token)
         db.commit()
         return db_authentication_token

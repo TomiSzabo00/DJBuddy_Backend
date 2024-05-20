@@ -129,6 +129,7 @@ async def test():
 
 @app.post("/api/users/login", tags=["User"], response_model=schemas.User,status_code=200)
 async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
+    print('!!!!!!!!!!!!     Loginnnnnnnn')
     if not login_data.auth_token:
         user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
         if not user:
@@ -152,12 +153,18 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
         user = await UserRepo.fetch_by_email(db, login_data.email)
         auth_token = await AuthenticationTokenRepo.refresh(db, user.uuid)
 
+    print(auth_token.token)
+    print(auth_token.expires)
     return JSONResponse(status_code=200, headers={"user_token": auth_token.token}, content=user.model_dump())
 
 @app.get("/api/login/google")
 async def login_via_google(request: Request):
     redirect_uri = request.url_for('auth_via_google')
+    redirect_uri = redirect_uri.replace(scheme="https")
     return await oauth.google.authorize_redirect(request, redirect_uri)
+#    base_url = f"{request.url.scheme}://{request.host}"  # Assuming no custom port
+#    redirect_uri = url_for('auth_via_google', _external=True, base_url=base_url)
+#    return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/api/auth/google")
 async def auth_via_google(request: Request, db: Session = Depends(get_db)):
@@ -184,6 +191,7 @@ async def auth_via_google(request: Request, db: Session = Depends(get_db)):
 @app.get("/api/login/facebook")
 async def login_via_facebook(request: Request):
     redirect_uri = request.url_for('auth_via_facebook')
+    redirect_uri = redirect_uri.replace(scheme="https")
     return await oauth.facebook.authorize_redirect(request, redirect_uri)
 
 @app.get("/api/auth/facebook")
@@ -258,6 +266,7 @@ async def verify_user(user_id: str, code: str, db: Session = Depends(get_db)):
 
 @app.get('/api/users/events', tags=["User"],response_model=List[schemas.Event])
 async def get_user_events(token: str = Header(None, alias="user_token"), db: Session = Depends(get_db)):
+    print('!!!!!!!! Token: ', token)
     """
     Get the Events associated with the given User ID
     """
