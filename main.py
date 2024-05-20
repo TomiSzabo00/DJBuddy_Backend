@@ -204,17 +204,18 @@ async def auth_via_facebook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch user profile")
 
 async def create_user_from_social(user: SocialUser, db: Session):
+    print('Creating user from social')
     db_user = await UserRepo.fetch_by_email(db, user.email)
     if db_user is None:
         db_user = await UserRepo.create_social_user(db, user)
         auth_token = await AuthenticationTokenRepo.create(db, db_user.uuid)
     elif not db_user.is_social:
-        raise HTTPException(status_code=400, detail=APIError.general("Email already in use"))
+        return JSONResponse(status_code=400, content={"result": "failure", "message": "User already exists with this email"})
     else:
-        auth_token = await AuthenticationTokenRepo.fetch_by_user_id(db, db_user.uuid)
+        auth_token = await AuthenticationTokenRepo.refresh(db, db_user.uuid)
     
     if auth_token is None:
-        raise HTTPException(status_code=400, detail=APIError.sessionExpired.value)
+        auth_token = await AuthenticationTokenRepo.create(db, db_user.uuid)
     
     return JSONResponse(status_code=200, content={"result": "success", "user_token": auth_token.token, "email": db_user.email})
 

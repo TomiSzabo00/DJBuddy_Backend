@@ -314,6 +314,8 @@ class AuthenticationTokenRepo:
     
     async def refresh(db: Session,user_id:str):
         db_authentication_token = await AuthenticationTokenRepo.fetch_by_user_id(db,user_id)
+        if db_authentication_token is None:
+            return None
         db_authentication_token.expires = datetime.datetime.now() + datetime.timedelta(hours=3)
         db.refresh(db_authentication_token)
         db.commit()
@@ -328,6 +330,8 @@ class AuthenticationTokenRepo:
         expiry = datetime.datetime.fromisoformat(token_model.expires)
         now = datetime.datetime.now().astimezone(utc)
         if expiry < now:
+            print('Now:',now)
+            print('Expiry:',expiry)
             await AuthenticationTokenRepo.delete(db,token_model.user_id)
             return False
         return True
