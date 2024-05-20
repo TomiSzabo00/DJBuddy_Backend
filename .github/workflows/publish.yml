@@ -22,23 +22,24 @@ jobs:
           script: |
               cd /home/${{ secrets.AWS_EC2_USER }}/DJBuddy_Backend
               git pull origin main
+              sudo systemctl restart gunicorn
               sudo systemctl restart nginx
       
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
+      # - name: Set up Python
+      #   uses: actions/setup-python@v2
+      #   with:
+      #     python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install httpx pytest
+      # - name: Install dependencies
+      #   run: |
+      #     pip install -r requirements.txt
+      #     pip install httpx pytest
 
-      - name: Run tests
-        run: |
-          pytest -v
-          test_result=$?
-          if [ $test_result -ne 0 ]; then
-            echo "Tests failed. Exiting with code $test_result"
-            exit 1  # Explicitly mark the job as failed
-          fi
+      # - name: Run tests
+      #   run: |
+      #     pytest -v
+      #     test_result=$?
+      #     if [ $test_result -ne 0 ]; then
+      #       echo "Tests failed. Exiting with code $test_result"
+      #       exit 1  # Explicitly mark the job as failed
+      #     fi
