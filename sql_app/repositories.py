@@ -315,7 +315,7 @@ class AuthenticationTokenRepo:
     async def refresh(db: Session,user_id:str):
         db_authentication_token = await AuthenticationTokenRepo.fetch_by_user_id(db,user_id)
         if db_authentication_token is None:
-            return None
+            return await AuthenticationTokenRepo.create(db,user_id)
         db_authentication_token.expires = datetime.datetime.now() + datetime.timedelta(hours=12)
         db.refresh(db_authentication_token)
         db.commit()

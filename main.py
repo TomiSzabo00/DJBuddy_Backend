@@ -127,8 +127,8 @@ async def test():
 
 # MARK: User
 
-@app.post("/api/users/login", tags=["User"], response_model=schemas.User,status_code=200)
-async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db)):
+@app.post("/api/users/login/", tags=["User"], response_model=schemas.User,status_code=200)
+async def login_user(login_data: schemas.LoginData, is_social: bool = False, db: Session = Depends(get_db)):
     print('!!!!!!!!!!!!     Loginnnnnnnn')
     if not login_data.auth_token:
         user = await UserRepo.authenticate_user(db, login_data.email, login_data.password)
@@ -145,11 +145,12 @@ async def login_user(login_data: schemas.LoginData, db: Session = Depends(get_db
                 
         auth_token = await AuthenticationTokenRepo.create(db, user.uuid)
     else:
-        if not await AuthenticationTokenRepo.authenticate(db, login_data.auth_token):
-            raise HTTPException(
-                status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                detail=APIError.sessionExpired.value,
-            )
+        if not is_social:
+            if not await AuthenticationTokenRepo.authenticate(db, login_data.auth_token):
+                raise HTTPException(
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                    detail=APIError.sessionExpired.value,
+                )
         user = await UserRepo.fetch_by_email(db, login_data.email)
         auth_token = await AuthenticationTokenRepo.refresh(db, user.uuid)
 
@@ -221,9 +222,6 @@ async def create_user_from_social(user: SocialUser, db: Session):
         return JSONResponse(status_code=400, content={"result": "failure", "message": "User already exists with this email"})
     else:
         auth_token = await AuthenticationTokenRepo.refresh(db, db_user.uuid)
-    
-    if auth_token is None:
-        auth_token = await AuthenticationTokenRepo.create(db, db_user.uuid)
     
     return JSONResponse(status_code=200, content={"result": "success", "user_token": auth_token.token, "email": db_user.email})
 
