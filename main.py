@@ -161,7 +161,7 @@ async def login_user(login_data: schemas.LoginData, is_social: bool = False, db:
 @app.get("/api/login/google")
 async def login_via_google(request: Request):
     redirect_uri = request.url_for('auth_via_google')
-    redirect_uri = redirect_uri.replace(scheme="https")
+    #redirect_uri = redirect_uri.replace(scheme="https")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 #    base_url = f"{request.url.scheme}://{request.host}"  # Assuming no custom port
 #    redirect_uri = url_for('auth_via_google', _external=True, base_url=base_url)
